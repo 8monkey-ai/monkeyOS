@@ -1,101 +1,78 @@
 # Infinite Monkey Application Platform
 
+## Overall Approach & Architecture — Canonical V1
+
 ## 1. Objective
 
-The **Infinite Monkey Application Platform** is a self-service platform for business users and developers to build, test, review, secure and deploy production-ready applications with minimal infrastructure knowledge.
+The **Infinite Monkey Application Platform** is a self-service environment for business users and developers to build, test, review, secure and deploy production-ready applications primarily through Codex or Claude Code.
 
-The intended experience is:
+The intended user experience remains:
 
 ```text
-build or change the application
+start app
+↓
+build feature
 ↓
 commit code
 ↓
 deploy production
 ```
 
-The coding agent—primarily Codex or Claude Code—is the main interface.
-
 Users should not normally need to understand or operate:
 
 - GitHub Actions
-- branches or pull requests
 - Kamal
 - Docker hosts
 - Cloudflare
 - Supabase administration
-- cloud networking
 - container registries
+- cloud networking
 - production infrastructure credentials
 
-Compute remains cloud-agnostic. Applications can run on Azure, AWS, GCP, Hetzner, bare metal or another Docker-capable environment.
-
-The standardized platform services are:
+The standardized platform layer is:
 
 ```text
 GitHub     → source, CI/CD, configuration, secrets, GHCR
-Cloudflare → DNS, CDN, TLS, edge
+Cloudflare → DNS, TLS, CDN, edge/load balancing
 Supabase   → Postgres + Auth
-Kamal      → container deployment
+Kamal      → deployment
 ```
+
+The underlying compute can remain Azure, AWS, GCP, Hetzner, bare metal or another Docker-capable environment.
 
 ---
 
-## 2. Core Principles
+# 2. Core Principles
 
-### Self-service by default
-
-Creating an application should require approximately:
+### The repository is the application
 
 ```text
-1. Create repo from standard scaffold
-2. Create Supabase application schema and roles
-3. Configure production secrets
-4. Apply platform workflow protection
-5. Grant Application Owner access
+company/damaged-stock
 ```
 
-After that, normal development should require no IT intervention.
+automatically derives:
 
-There should be no per-application:
+```text
+app                damaged-stock
+database schema    damaged_stock
+container image    ghcr.io/company/damaged-stock:<sha>
+production URL     damaged-stock.apps.company.com
+```
 
-- infrastructure registration
-- deployment registration
-- server assignment
-- DNS setup
-- container-registry setup
-- Kamal configuration
-- infrastructure-repository change
-- cloud provisioning
+There is no separate application registry.
 
 ### Convention over configuration
 
-The repository is the application identity.
+A standard app requires no:
 
-```text
-repo             company/damaged-stock
-app              damaged-stock
-database schema  damaged_stock
-image            ghcr.io/company/damaged-stock:<sha>
-production URL   damaged-stock.apps.company.com
-```
-
-The standard application needs no deployment configuration file.
-
-### No separate platform state
-
-There is no application registry or custom deployment-state database.
-
-Operational state comes from:
-
-```text
-Git
-GitHub Actions
-GitHub Deployments
-GHCR
-Kamal
-running containers
-```
+- per-app infrastructure registration
+- server mapping
+- DNS configuration
+- container registry setup
+- Kamal configuration
+- cloud provisioning
+- central infrastructure repo change
+- deployment-state entry
 
 ### `main` is source, not production
 
@@ -106,7 +83,27 @@ production = explicitly promoted artifact
 
 `main` never auto-deploys.
 
-Business users can commit directly to `main`. Branches remain available where useful but are not part of the platform's deployment model.
+Business users may commit directly to `main`. Developers may use branches where useful.
+
+### Quality without bureaucracy
+
+Every meaningful change goes through:
+
+```text
+implementation
+↓
+tests
+↓
+agent code review
+↓
+agent security review
+↓
+deterministic CI
+↓
+immutable releasable artifact
+```
+
+Mandatory human PR review is not required for normal application development.
 
 ---
 
@@ -114,9 +111,9 @@ Business users can commit directly to `main`. Branches remain available where us
 
 ## Application Owner
 
-Normally receives GitHub **Write or Maintain** access.
+Normally gets GitHub **Write or Maintain**, not Admin.
 
-Can control:
+Controls:
 
 ```text
 application code
@@ -131,11 +128,9 @@ Can:
 
 ```text
 commit to main
-trigger deployment of own application
-manage permitted app-specific secrets
+deploy own application
+manage permitted app secrets
 ```
-
-Should **not** have repository Admin access.
 
 ## Platform Admin
 
@@ -146,16 +141,15 @@ GitHub rulesets
 protected workflows
 production environments
 deployment credentials
-runtime-pool definitions
-infrastructure hosts
+runtime infrastructure
+Cloudflare load balancer
+Supabase platform configuration
 central deployment workflow
-Cloudflare platform setup
-shared Supabase configuration
 ```
 
-The fundamental boundary is:
+The core rule remains:
 
-> **Application Owners control what their application does; Platform Admins control where and how it runs.**
+> **Application Owners control what their application does. Platform Admins control where and how it runs.**
 
 ---
 
@@ -172,18 +166,7 @@ Supabase CLI
 Docker-compatible runtime
 ```
 
-Supabase CLI should preferably be project-pinned and invoked through Bun.
-
-Typical agent commands:
-
-```text
-bunx supabase start
-bunx supabase stop
-bunx supabase db reset
-bunx supabase gen types ...
-```
-
-Not required locally:
+Not required:
 
 ```text
 Kamal
@@ -191,17 +174,28 @@ cloud provider CLI
 production SSH keys
 production database credentials
 Cloudflare CLI
-GitHub runner software
-GHCR credentials
+GitHub runner
+registry credentials
 ```
 
-Each application develops against its **own local Supabase stack**, including local Postgres, Auth, Data API, Storage and seed data.
+Each app develops against its own local Supabase stack.
 
-Local database state and Auth users are disposable and reproducible. Normal local development never points at production. This isolation was explicit in the earlier design and should remain so. 
+```text
+Application
+    ↓
+Local Supabase
+    ├── Postgres
+    ├── Auth
+    ├── Data API
+    ├── Storage
+    └── seed data
+```
+
+Production is not used as the local development database.
 
 ---
 
-# 5. Self-Service Agent Bootstrap
+# 5. Self-Service Bootstrap
 
 The user says:
 
@@ -212,7 +206,7 @@ start app
 The agent handles:
 
 ```text
-check workstation
+check tools
 ↓
 bun install
 ↓
@@ -222,22 +216,16 @@ start local Supabase
 ↓
 apply migrations
 ↓
-load seed
+seed data
 ↓
-generate database types
+generate DB types
 ↓
 start application
 ↓
 report local URL
 ```
 
-And:
-
-```text
-check environment
-```
-
-checks at least:
+`check environment` verifies at least:
 
 ```text
 ✓ Git
@@ -269,30 +257,30 @@ Forms                    React Hook Form
 Validation               Zod
 
 Server state             TanStack Query
-Local state              React state
+Local UI state           React
 Shared client state      Zustand, narrowly
-URL state                React Router search params
+URL state                React Router
 
-Tables                    TanStack Table
-Charts                    Recharts v3
+Tables                   TanStack Table
+Charts                   Recharts v3
 
-Database                  Supabase Postgres
-Client                    supabase-js
-Schema changes            SQL migrations
-ORM                       none
+Database                 Supabase Postgres
+Client                   supabase-js
+Schema management        SQL migrations
+ORM                      none
 
-Formatting                oxfmt
-Linting                   oxlint
+Formatting               oxfmt
+Linting                  oxlint
 
-Unit testing              Bun test
-E2E                       Playwright
+Unit tests               Bun test
+E2E                      Playwright
 ```
 
-Do not use npm, pnpm, yarn or npx.
+No npm/pnpm/yarn/npx.
 
-Server state belongs in TanStack Query. Do not duplicate it into Zustand and do not use `useEffect` as the normal fetching mechanism.
+No ORM.
 
-There is deliberately **no central Infinite Monkey component library**. Standardize decisions, agent behavior and tooling—not application implementation. The previous README also explicitly captured the tooling gates, tests and scaffold responsibilities, which should remain part of the architecture. 
+No central Infinite Monkey application-component library.
 
 ---
 
@@ -300,50 +288,41 @@ There is deliberately **no central Infinite Monkey component library**. Standard
 
 > **SOLID and clean, but simple.**
 
-Agents should create code that is:
-
-- readable
-- strongly typed
-- cohesive
-- testable
-- appropriately abstracted
-- easy for another human or agent to change
-
-Avoid under-engineering such as:
+Avoid under-engineering:
 
 ```text
 giant components
 duplicated business logic
 untyped data
 hidden side effects
-business logic embedded directly in UI
-ad-hoc state management
+business logic embedded in UI
+ad-hoc state
 ```
 
-Also avoid over-engineering:
+But also avoid:
 
 ```text
 unnecessary interfaces
 factories without real need
-generic frameworks for one use case
+generic frameworks
 premature extensibility
 deep abstraction hierarchies
 excessive indirection
 ```
 
-Abstractions should solve a concrete problem rather than a hypothetical future one.
+Abstractions should solve a concrete problem.
 
 ---
 
 # 8. Data Architecture & Governance
 
-The concise governing model is:
+The governing rule remains:
 
 > **Own locally. Discover globally. Share explicitly.**
 
-### Each application owns its schema and data
+### Own locally
 
-Production Supabase is shared by environment/trust boundary:
+Each application owns its Supabase schema and its data.
 
 ```text
 Production Supabase
@@ -356,9 +335,9 @@ Production Supabase
 └── returns
 ```
 
-Each application controls its own schema by default.
+App-specific workflow data can be created freely inside the application's schema.
 
-### Database structure is globally discoverable
+### Discover globally
 
 Development agents can inspect metadata across application schemas:
 
@@ -370,9 +349,9 @@ relationships
 comments
 ```
 
-but cannot access their row data.
+but not their row data.
 
-Example:
+For example:
 
 ```text
 damaged_stock_dev
@@ -382,63 +361,45 @@ inventory.*      → metadata only
 sales.*          → metadata only
 ```
 
-This metadata comes dynamically from PostgreSQL through a constrained platform metadata interface. There is **no manually maintained data catalog**.
+Metadata is derived from PostgreSQL itself through a constrained platform interface. There is no manually maintained data catalog.
 
-Before introducing meaningful business entities such as customers, devices, products, stores, suppliers or orders, the agent checks whether a source of truth already exists.
+Before introducing an important business entity, the agent checks whether a source of truth already exists.
 
-### Sharing is explicit
+### Share explicitly
 
-If another domain already owns the required information, reuse it rather than copying it.
+If another app already owns the required data, reuse it instead of copying it.
 
-Cross-domain reads use narrow contracts such as views/APIs/RPCs exposing only the required information.
+Cross-domain reads use narrow contracts such as views/APIs/RPCs.
 
-Cross-domain writes require an explicit operation controlled by the owning domain rather than generic write access to another schema.
+Cross-domain writes require explicit operations controlled by the owning domain rather than broad direct write access.
 
 And:
 
 > **Use the simplest relational model that preserves business meaning and integrity.**
 
-The `database-migration` skill applies these checks automatically alongside RLS, permissions and PII review.
+The `database-migration` skill performs these checks automatically alongside RLS, grants and PII review.
 
 ---
 
-# 9. Supabase Security Model
+# 9. Supabase Access Model
 
-A Supabase project represents an **environment/trust boundary**, not an application.
+Development and runtime access remain separate.
 
-Auth is shared within that environment.
-
-```text
-one user registration
-        ↓
-shared Supabase Auth
-        ↓
-JWT
-        ↓
-app-specific RLS
-        ↓
-authorized application data
-```
-
-So users can authenticate once and use multiple apps; authorization remains app-specific. 
-
-Developer access and user access are completely separate.
-
-### Developer role
-
-Example:
+### Development role
 
 ```text
 damaged_stock_dev
 ```
 
-Receives:
+gets:
 
-- appropriate own-schema development permissions
-- global metadata-discovery capability
-- explicitly approved cross-domain contracts
+```text
+own schema development access
+global structural metadata discovery
+explicitly approved cross-domain contracts
+```
 
-Never broad:
+Never:
 
 ```text
 postgres
@@ -448,60 +409,53 @@ service_role
 
 ### Runtime role
 
-Example:
-
 ```text
 damaged_stock_runtime
 ```
 
-Receives only production-required privileges:
-
-- required own-schema access
-- approved cross-domain runtime contracts
-- no DDL
-- no global metadata discovery
-
-### Defaults
+gets only:
 
 ```text
-Data API                         ON
-Automatically expose new tables OFF
-Automatic RLS                   ON
+required own-schema access
+required cross-domain contracts
+no DDL
+no global metadata discovery
 ```
 
-New objects fail closed.
-
-The agent explicitly defines:
+Application users authenticate through shared Supabase Auth:
 
 ```text
-grants
+User
+ ↓
+Supabase Auth
+ ↓
+JWT
+ ↓
 RLS
-authorization
-cross-domain access
+ ↓
+authorized data
 ```
 
-SQL migrations remain canonical.
+Authentication can therefore be shared while authorization remains application-specific.
 
 ---
 
-# 10. Engineering Loop
+# 10. Engineering and Security Loop
 
-The development loop is:
+Every meaningful change:
 
 ```text
 understand
-↓
-plan
 ↓
 implement
 ↓
 test
 ↓
-agent code review
+code review
 ↓
 fix
 ↓
-agent security review
+security review
 ↓
 fix
 ↓
@@ -510,137 +464,38 @@ quality gate
 commit
 ```
 
-The user generally experiences only:
+Agent review should preferably use a fresh reviewer context/sub-agent where supported.
+
+Findings are:
 
 ```text
-"build this"
-
-"commit code"
+BLOCKING
+IMPORTANT
+SUGGESTION
 ```
 
----
+No commit while blocking findings remain.
 
-# 11. Agent Code Review
-
-Every meaningful change gets a review before commit.
-
-Prefer:
-
-```text
-reviewer sub-agent
-fresh context
-or independent second pass
-```
-
-Review covers:
-
-- correctness and edge cases
-- async and error paths
-- validation
-- architecture
-- justified abstractions
-- simplicity
-- cohesion and duplication
-- React/state patterns
-- database architecture
-- schema ownership
-- migrations
-- RLS/grants
-- mobile UX
-- accessibility
-- tests
-
-Findings:
-
-```text
-BLOCKING    must fix
-IMPORTANT   normally fix
-SUGGESTION  optional
-```
-
-No commit while blocking findings remain. 
-
----
-
-# 12. Security Review
-
-Security review is distinct from code review.
-
-```text
-CODE REVIEW
-↓
-SECURITY REVIEW
-↓
-AUTOMATED SECURITY CHECKS
-```
-
-It reviews:
+Security review separately covers:
 
 ```text
 authentication
 authorization
 RLS
 schema boundaries
-cross-domain data access
 PII
-logging
-input validation
-injection
+cross-domain access
+validation/injection
 secrets
-dependency risk
-unsafe browser behavior
-container privileges
+dependencies
+browser security
+Docker/runtime privileges
 deployment security
 ```
 
-The Supabase-specific rules include:
-
-```text
-no service_role in frontend
-explicit grants
-RLS enabled
-new objects fail closed
-privileged functions treated carefully
-```
-
-Deployment review includes host mounts, exposed ports, Docker socket usage, privileged execution and runtime-secret isolation. 
-
 ---
 
-# 13. Continuous Security
-
-Security has **two levels**:
-
-```text
-CHANGE LEVEL
-every meaningful change
-
-REPOSITORY LEVEL
-periodically even when untouched
-```
-
-This matters because security can degrade without a source-code change:
-
-- dependencies become vulnerable
-- packages become abandoned
-- attacks evolve
-- platform/security agents improve
-- configuration becomes stale
-- previously unnoticed weaknesses become detectable
-
-This explicit principle from the prior architecture should not be lost. 
-
-Repositories therefore run scheduled audits, for example weekly.
-
-The question is:
-
-> **Would we still consider this app secure and maintainable if we built it today?**
-
-The audit covers security **and** material maintainability, but avoids rewriting code merely because a newer stylistic preference exists.
-
----
-
-# 14. Commit Workflow
+# 11. Commit Workflow
 
 The `commit` skill performs:
 
@@ -649,97 +504,64 @@ The `commit` skill performs:
 2. format
 3. lint
 4. typecheck
-5. unit tests
-6. database tests where relevant
-7. build
-8. agent code review
-9. fix blocking findings
-10. agent security review
-11. fix blocking findings
-12. rerun affected checks
-13. commit
-14. push
-```
-
-The user should receive a short outcome:
-
-```text
-✓ Formatted
-✓ Linted
-✓ Types valid
-✓ Tests passed
-✓ Build passed
-✓ Code review passed
-✓ Security review passed
-
-Committed and pushed 8a921cf.
+5. unit/database tests
+6. build
+7. code review
+8. fix blocking findings
+9. security review
+10. fix blocking findings
+11. rerun affected checks
+12. commit
+13. push
 ```
 
 ---
 
-# 15. Continuous Integration
+# 12. CI and Immutable Artifacts
 
-Every pushed commit independently executes:
+Every pushed commit independently runs:
 
 ```text
 format
 ↓
 lint
 ↓
-TypeScript
+typecheck
 ↓
 unit tests
 ↓
-database/migration tests
+migration / RLS tests
 ↓
-RLS tests
-↓
-dependency-security checks
+dependency/security checks
 ↓
 secret scanning
 ↓
-production build
+build
 ↓
 Playwright
 ↓
-container build
+Docker build
 ↓
-GHCR publish
+GHCR
 ```
 
-The distinction is important:
-
-> **Agent review provides contextual reasoning. CI provides deterministic verification.**
-
-Neither replaces the other. 
-
----
-
-# 16. Immutable Artifact Model
-
-A successful commit produces:
+The result is an immutable image:
 
 ```text
 ghcr.io/company/damaged-stock:<git-sha>
 ```
 
-The image is:
+Production deploys that already-built image. It does not rebuild source during deployment.
 
-```text
-immutable
-built once
-tested once
-security checked
-deployed without rebuilding
-```
+The principle is:
 
-Production therefore promotes an already-tested artifact rather than rebuilding source during deployment. 
+> **Agent review provides contextual reasoning; CI provides deterministic verification.**
 
 ---
 
-# 17. GitHub as the Platform Control Plane
+# 13. GitHub as Platform Control Plane
 
-GitHub owns:
+GitHub provides:
 
 ```text
 source
@@ -750,39 +572,86 @@ organization secrets
 production environment secrets
 GHCR
 deployment history
-scheduled repository audits
+scheduled audits
 ```
 
-There is no separate application secret store or container registry.
+There is no separate deployment-state database or application registry.
 
 ---
 
-# 18. Runtime Pools
+# 14. Runtime Architecture
 
-Applications map to **runtime pools**, not individual servers.
+This is the important latest change.
 
-Normal V1 applications implicitly use:
+## A runtime pool is a small HA cell
+
+Instead of treating the runtime pool as a large cluster that requires application placement, define it as:
+
+> **A small set of interchangeable hosts providing application-level redundancy. Every application assigned to that pool runs on every host in the pool.**
+
+For V1:
 
 ```text
 production/default
+
+├── app-prod-01
+└── app-prod-02
 ```
 
-Hosts live in a GitHub organization variable:
+And both servers contain the full set of standard applications:
+
+```text
+app-prod-01
+├── damaged-stock
+├── returns
+├── stocktake
+└── purchasing
+
+app-prod-02
+├── damaged-stock
+├── returns
+├── stocktake
+└── purchasing
+```
+
+This is deliberate.
+
+There is no:
+
+```text
+app → server mapping
+placement algorithm
+scheduler
+routing registry
+front-door Worker
+```
+
+The pool itself is the unit of deployment and redundancy.
+
+---
+
+# 15. Runtime Pool Configuration
+
+The host list remains centrally managed through a GitHub organization variable:
 
 ```text
 PROD_DEFAULT_HOSTS=
 app-prod-01.example.com,app-prod-02.example.com
 ```
 
-The mapping is:
+Normal application repositories know nothing about individual servers.
+
+The deployment mapping is simply:
 
 ```text
 repository
 damaged-stock
       ↓
+environment
 production
       ↓
-default runtime pool
+runtime pool
+default
       ↓
 PROD_DEFAULT_HOSTS
       ↓
@@ -790,55 +659,115 @@ app-prod-01
 app-prod-02
 ```
 
-Normal repositories have no runtime-pool configuration.
-
-When IT adds a server, it changes `PROD_DEFAULT_HOSTS` once. Application repositories remain untouched. This separation between infrastructure change and app creation was explicit in the previous architecture. 
-
-Every standard app is deployed to every host in the default pool.
+Kamal receives those concrete hosts.
 
 ---
 
-# 19. Kamal Deployment Model
+# 16. Cloudflare Front Door
 
-Kamal is **a deployment mechanism, not a permanent service**. 
+Because every application exists on every host, the edge layer stays extremely simple.
 
-V1 uses a GitHub-hosted runner:
+Use a single wildcard Cloudflare Load Balancer for:
 
 ```text
-GitHub workflow
+*.apps.company.com
+```
+
+pointing to the default runtime pool:
+
+```text
+                    *.apps.company.com
+                            │
+                            ▼
+                    Cloudflare LB
+                      /          \
+                     /            \
+                    ▼              ▼
+              app-prod-01     app-prod-02
+                    │              │
+               kamal-proxy    kamal-proxy
+```
+
+Cloudflare supports wildcard load-balancer hostnames, so one wildcard can front the shared origin pool rather than requiring a load balancer per application. 
+
+Each server's `kamal-proxy` then uses the original application hostname to route to the correct container. Kamal's proxy supports hosting multiple applications on one proxy and routing based on configured hosts. 
+
+Therefore:
+
+```text
+damaged-stock.apps.company.com
+```
+
+can land on either runtime host.
+
+Both can answer it.
+
+There is no application-aware routing required at Cloudflare.
+
+---
+
+# 17. Production Deployment
+
+The user says:
+
+```text
+deploy production
+```
+
+The agent:
+
+```text
+identify current repo
+↓
+identify Git SHA
+↓
+verify CI
+↓
+trigger protected workflow
+↓
+central workflow resolves default hosts
+↓
+GitHub-hosted runner
+↓
+Kamal
+↓
+deploy same image to both hosts
+↓
+health verification
+↓
+report result
+```
+
+Kamal's proxy switches traffic to the newly started application container once its health endpoint succeeds, which is what allows application deployments to be performed without an application outage. 
+
+---
+
+# 18. GitHub-Hosted Kamal Runner
+
+V1 has **no dedicated Kamal server**.
+
+```text
+GitHub Actions
       ↓
-ephemeral GitHub-hosted runner
+GitHub-hosted runner
       ↓
 Kamal
       ↓
 SSH
       ↓
-runtime hosts
+app-prod-01
+app-prod-02
 ```
 
-There is no dedicated Kamal host.
+A self-hosted runner remains a future option if private-only deployment networking becomes worth the additional infrastructure.
 
-The trusted workflow resolves:
-
-```text
-repository → app identity
-Git SHA    → GHCR image
-production → default runtime pool
-org var    → concrete hosts
-repo name  → production hostname
-```
-
-and generates a temporary Kamal config.
-
-Kamal itself never needs to know what a "runtime pool" is.
-
-No normal application repository contains Kamal configuration.
+It does not change the application model.
 
 ---
 
-# 20. Protected Deployment Boundary
+# 19. Protected Deployment Boundary
 
-Application Owners cannot change production deployment behavior.
+Application Owners cannot alter where deployment goes.
 
 Protect at least:
 
@@ -846,85 +775,36 @@ Protect at least:
 .github/workflows/**
 ```
 
-through GitHub rulesets.
+using GitHub rulesets.
 
-Only Platform Admins/trusted automation can modify protected deployment logic.
+The real deployment implementation lives in a centrally controlled reusable workflow.
 
-Application Owners can still directly modify:
-
-```text
-src/**
-tests/**
-supabase/**
-Dockerfile
-dependencies
-```
-
-but cannot control:
+The application cannot specify:
 
 ```text
-runtime hosts
-deployment credentials
-target application
-Kamal policy
-production environment controls
-```
-
----
-
-# 21. Central Trusted Deployment Workflow
-
-The application repository contains only a protected deployment entry point.
-
-```text
-App repo
-   ↓
-protected entrypoint
-   ↓
-central trusted workflow
-   ↓
-GitHub-hosted runner
-   ↓
-Kamal
-```
-
-The central workflow does **not** allow the caller to choose:
-
-```text
-application name
-target repository
-runtime host
+target app
+target repo
+target hosts
 runtime pool
 domain
 SSH target
-privileged Docker settings
+Docker privileges
+host mounts
 ```
 
-Its effective API is:
+The deployment interface is effectively:
 
 ```text
 deploy_this_repository()
 ```
 
-A user can deploy their app, not another application.
-
 ---
 
-# 22. Production Credential Isolation
+# 20. Deployment Credential Isolation
 
-The production SSH credential exists only inside the privileged deployment phase.
+The production SSH credential is loaded only inside the trusted deployment phase.
 
-It must never be:
-
-```text
-available to ordinary CI
-inside application containers
-stored locally
-printed in logs
-available to application-controlled scripts
-```
-
-Deployment order:
+Safe flow:
 
 ```text
 verify CI
@@ -933,53 +813,223 @@ verify immutable GHCR image
 ↓
 load deployment credentials
 ↓
-generate trusted Kamal configuration
+generate temporary Kamal configuration
 ↓
 kamal deploy
 ```
 
-Crucially:
+After the credential has been loaded, the workflow must not execute arbitrary application-controlled scripts.
 
-> **Once privileged deployment credentials are loaded, do not execute arbitrary application-controlled code.**
+The deployment credential is never exposed to:
 
-The trusted workflow consumes the already-built artifact instead. This is an important security boundary from the prior architecture and should remain explicit. 
+```text
+normal CI
+application containers
+developers' local machines
+application-controlled scripts
+```
 
 ---
 
-# 23. Container Privilege Boundary
+# 21. Container Privilege Boundary
 
 Application Owners control their application image.
 
-They do **not** control host-level privileges.
+They do not control host-level Docker privileges.
 
-Applications cannot request:
+The platform prevents applications from requesting:
 
 ```text
-privileged containers
-Docker socket mounts
+privileged mode
+Docker socket
 host filesystem mounts
 host networking
 arbitrary host ports
 arbitrary Docker options
 ```
 
-The platform controls those through trusted deployment configuration. 
+Those settings belong to the trusted platform-generated Kamal configuration.
 
 ---
 
-# 24. Secrets
+# 22. Zero-Downtime Infrastructure Maintenance
 
-Shared sensitive values may be GitHub organization secrets.
+The two-host runtime pool also gives us a very simple maintenance model.
 
-Example:
+For any operation requiring a host restart:
 
 ```text
-shared telemetry credentials
+app-prod-01
+app-prod-02
 ```
 
-Shared non-sensitive platform configuration belongs in organization variables.
+never take both down together.
 
-Application-specific production secrets belong in the repo's `production` environment:
+Instead:
+
+```text
+1. drain app-prod-01
+2. perform maintenance
+3. boot / verify app-prod-01
+4. return it to traffic
+
+5. drain app-prod-02
+6. perform maintenance
+7. boot / verify app-prod-02
+8. return it to traffic
+```
+
+Cloudflare Load Balancing supports taking an endpoint out of rotation and endpoint draining, so new traffic can be moved away from one host while existing connections are allowed to finish before maintenance. 
+
+This procedure applies to:
+
+```text
+OS maintenance
+Docker maintenance
+VM resizing
+host replacement
+some networking changes
+```
+
+---
+
+# 23. Vertical Scaling
+
+Vertical scaling is the **default infrastructure scaling strategy for V1**.
+
+If the runtime pool needs more CPU or RAM:
+
+```text
+2 × current VM size
+```
+
+becomes:
+
+```text
+2 × larger VM size
+```
+
+using rolling replacement/resize:
+
+```text
+Cloudflare
+
+     ↓ drain 01
+
+prod-01   prod-02
+   X         ✓
+             │
+       all traffic here
+
+resize / restart 01
+        ↓
+verify
+        ↓
+return 01
+
+     ↓ drain 02
+
+prod-01   prod-02
+   ✓         X
+   │
+all traffic here
+
+resize / restart 02
+        ↓
+verify
+        ↓
+return 02
+```
+
+Thus the VM itself does not need to support a magical zero-downtime resize. **Application availability comes from the other host remaining in service.**
+
+This keeps V1 much simpler than introducing horizontal application placement.
+
+---
+
+# 24. Host Failure Model
+
+The same topology provides basic host-level redundancy:
+
+```text
+both healthy
+→ traffic can use both
+
+prod-01 unavailable
+→ prod-02 continues serving every application
+
+prod-02 unavailable
+→ prod-01 continues serving every application
+```
+
+The crucial property is:
+
+> **Any healthy host in the pool can serve any standard application.**
+
+That is what keeps ingress, deployment and operations simple.
+
+---
+
+# 25. Scaling Beyond the Initial Pool
+
+For V1, do **not** pre-design:
+
+```text
+10-host cluster
+application scheduling
+sparse placement
+per-app load balancing
+routing databases
+Kubernetes-style orchestration
+```
+
+Instead:
+
+### First
+
+Scale the two hosts vertically.
+
+### Later, only when actually required
+
+Revisit whether the workload should be split into additional pools or moved to a more sophisticated scheduler.
+
+Potential future reasons might include:
+
+```text
+very high compute workloads
+security isolation
+special networking
+large number of applications
+different availability requirements
+```
+
+But those are not V1 concerns.
+
+This gives us the right architectural stance:
+
+> **Do not solve tomorrow's orchestration problem today.**
+
+---
+
+# 26. Secrets & Configuration
+
+### Organization variables
+
+Non-sensitive platform configuration:
+
+```text
+PROD_DEFAULT_HOSTS
+APP_DOMAIN
+etc.
+```
+
+### Organization secrets
+
+Shared sensitive configuration where appropriate.
+
+### Repository production environment
+
+App-specific production credentials:
 
 ```text
 DATABASE_URL
@@ -987,102 +1037,13 @@ OPENAI_API_KEY
 third-party credentials
 ```
 
-The flow is:
-
-```text
-GitHub production environment
-↓
-trusted deployment workflow
-↓
-Kamal
-↓
-application container
-```
-
-Normal application configuration requires no repository variables. 
+Production secrets are not required locally and are never printed back by the agent.
 
 ---
 
-# 25. Cloudflare & Runtime Infrastructure
+# 27. Mobile & Testing Requirements
 
-Cloudflare provides:
-
-```text
-DNS
-CDN
-TLS
-edge protection
-```
-
-using wildcard DNS:
-
-```text
-*.apps.company.com
-```
-
-Therefore:
-
-```text
-damaged-stock
-→ damaged-stock.apps.company.com
-```
-
-without per-app DNS setup.
-
-Runtime compute is interchangeable:
-
-```text
-Azure
-AWS
-GCP
-Hetzner
-bare metal
-other Docker hosts
-```
-
-Each runtime host can contain multiple application containers.
-
-Applications should generally be stateless; durable data belongs in Supabase or another explicit durable service. 
-
----
-
-# 26. Testing & Mobile Requirements
-
-### Unit tests
-
-Use Bun test for:
-
-- business logic
-- validation
-- utilities
-- important state transitions
-
-### Database tests
-
-Test:
-
-- migrations
-- RLS
-- grants
-- permissions
-- constraints
-- schema assumptions
-
-### E2E
-
-Playwright should exercise important workflows such as:
-
-```text
-login
-open app
-create
-edit
-save
-reload
-permissions
-```
-
-Every app must work on:
+All applications must support:
 
 ```text
 mobile
@@ -1090,73 +1051,71 @@ tablet
 desktop
 ```
 
-Including:
+including:
 
 - no horizontal overflow
-- usable mobile forms/navigation
+- usable forms/navigation
 - viewport-safe dialogs
-- usable touch targets
+- appropriate touch targets
 - accessible primary actions
-- sensible mobile presentation for tables
+- mobile-friendly table representation
 
-These were explicit requirements in the earlier README and should remain hard platform expectations. 
+Playwright covers representative device sizes.
+
+Database tests cover:
+
+```text
+migrations
+RLS
+grants
+constraints
+schema assumptions
+cross-domain contracts
+```
 
 ---
 
-# 27. Scaffold, `AGENTS.md` and Skills
+# 28. Continuous Repository Security
 
-The platform standardizes through three things:
-
-### Scaffold
-
-Technical baseline:
+Security operates at two levels:
 
 ```text
-src/
-supabase/
-tests/
-Dockerfile
+CHANGE LEVEL
+every meaningful change
 
-package.json
-bun.lock
-tsconfig.json
-vite.config.ts
-oxlint.json
-oxfmt.json
-
-AGENTS.md
-
-.github/
-  workflows/
+REPOSITORY LEVEL
+scheduled even if untouched
 ```
 
-### `AGENTS.md`
+A periodic audit asks:
 
-Defines non-negotiable engineering behavior:
+> **Would we still consider this application secure and maintainable if we built it today?**
 
-```text
-Bun only
-strict TypeScript
-React Router
-React Compiler
-no ORM
-SOLID but simple
-TanStack Query for server state
-Zustand only for shared client-only state
-RHF + Zod
-SQL migrations
-RLS required
-data-governance rules
-mobile friendly
-tests required
-code review required
-security review required
-deployment workflows platform-owned
-```
+It reviews:
 
-### Skills
+- dependencies
+- authentication/authorization
+- RLS/grants
+- data architecture
+- PII
+- secrets
+- frontend security
+- API boundaries
+- Docker configuration
+- Actions
+- deployment configuration
+- logging
+- obsolete patterns
+- unnecessary complexity
+- important missing tests
 
-Initial set:
+It should fix or raise material issues, not create stylistic churn.
+
+---
+
+# 29. Agent Skills
+
+Initial skills:
 
 ```text
 start
@@ -1172,234 +1131,179 @@ database-migration
 repository-audit
 ```
 
-`commit` orchestrates review and verification.
+Important orchestration:
 
-`database-migration` applies the data-architecture rules.
+```text
+commit
+├── test
+├── review
+├── security-review
+├── verify
+├── commit
+└── push
+```
 
-`deploy` can only request deployment of the current repository. 
+and:
+
+```text
+database-migration
+├── inspect own schema
+├── discover global metadata
+├── check existing sources of truth
+├── review model simplicity
+├── review RLS / grants / PII
+├── migrate
+└── test
+```
 
 ---
 
-# 28. Future Staging
+# 30. New Application Bootstrap
 
-Staging remains intentionally outside V1.
+Creating an application requires approximately:
 
-Later:
+```text
+1. Create repository from scaffold
+2. Create Supabase application schema
+3. Create schema-scoped developer role
+4. Create narrower runtime role
+5. Grant metadata discovery capability
+6. Configure production secrets
+7. Apply protected-workflow ruleset
+8. Give Application Owner Write/Maintain
+```
+
+Then the Application Owner should be self-service.
+
+No per-app infrastructure work.
+
+---
+
+# 31. Future Staging
+
+Staging remains V2.
+
+Eventually:
 
 ```text
 local
 ↓
 CI
 ↓
-staging migration
+production-like anonymized staging
 ↓
-production-like anonymized/sanitized data
+migration test
 ↓
-staging deployment
+staging deploy
 ↓
 UI/security tests
 ↓
 production
 ```
 
-The user still says only:
+The user still says:
 
 ```text
 deploy production
 ```
 
-Staging becomes an invisible safety gate rather than another workflow the user has to understand. 
-
----
-
-# 29. V1 Definition
-
-A new app requires approximately:
-
-```text
-1. Create repository from scaffold
-2. Create Supabase app schema
-3. Create schema-scoped developer role
-4. Create narrower runtime role
-5. Grant metadata discovery to developer role
-6. Configure production secrets
-7. Apply protected workflow/ruleset
-8. Give Application Owner Write/Maintain access
-```
-
-The workstation requires:
-
-```text
-Codex or Claude Code
-Git
-GitHub CLI
-Bun
-Supabase CLI
-Docker-compatible runtime
-```
-
-Then normal operation is:
-
-```text
-start app
-↓
-build feature
-↓
-commit code
-   → tests
-   → agent review
-   → security review
-   → push
-↓
-CI creates immutable artifact
-↓
-deploy production
-   → current repo only
-   → protected central workflow
-   → GitHub-hosted runner
-   → Kamal
-```
-
-There should still be no normal per-app:
-
-```text
-infrastructure registration
-server mapping
-cloud-console work
-DNS setup
-Kamal setup
-container-registry setup
-deployment-state configuration
-```
-
-This explicit V1 boundary was one of the strongest parts of the previous README and should stay in the canonical version. 
+The staging gate remains invisible.
 
 ---
 
 # Overall Architecture
 
 ```text
-                    BUSINESS USER / DEVELOPER
-                              │
-                       Codex / Claude
-                              │
-                         Agent Skills
-                              │
-                              ▼
-                       GitHub App Repo
-                       │             │
-                       │          SQL changes
-                       │             │
-                       │      migration skill
-                       │             │
-                       │      global DB metadata
-                       │             │
-                       │          Supabase
-                       │
-                 review + secure
-                       │
-                  commit / push
-                       │
-                       ▼
-                    GitHub CI
-                       │
-              deterministic gates
-                       │
-                       ▼
-                 Immutable GHCR
-                       │
-              "deploy production"
-                       │
-                       ▼
-             Protected Deploy Entry
-                       │
-                       ▼
-            Central Trusted Workflow
-                       │
-                       ▼
-              GitHub-Hosted Runner
-                       │
-                     Kamal
-                       │
-                      SSH
-                       ▼
-               Production Runtime Pool
-                 ┌─────┴─────┐
-                 ▼           ▼
-             app-prod-01  app-prod-02
-                 │           │
-                 └─────┬─────┘
-                       ▼
-              Application Containers
-                       │
-                       ▼
-                    Supabase
-             ┌─────────┴─────────┐
-             ▼                   ▼
-         Shared Auth         App Schemas
-                              + RLS
+                 BUSINESS USER / DEVELOPER
+                           │
+                    Codex / Claude
+                           │
+                      Agent Skills
+                           │
+                           ▼
+                    GitHub App Repo
+                           │
+                   review + secure
+                           │
+                     commit / push
+                           │
+                           ▼
+                       GitHub CI
+                           │
+                           ▼
+                  Immutable GHCR Image
+                           │
+                   deploy production
+                           │
+                           ▼
+                Protected Deploy Entry
+                           │
+                           ▼
+               Central Trusted Workflow
+                           │
+                           ▼
+                 GitHub-Hosted Runner
+                           │
+                         Kamal
+                           │
+                         SSH
+                           │
+            ┌──────────────┴──────────────┐
+            ▼                             ▼
+       app-prod-01                   app-prod-02
+            │                             │
+       kamal-proxy                   kamal-proxy
+            │                             │
+       ALL APPS                       ALL APPS
+            │                             │
+            └──────────────┬──────────────┘
+                           │
+                           ▼
+                        Supabase
 
 
-Platform configuration:
-
-GitHub Organization Variables
-           ↓
-   PROD_DEFAULT_HOSTS
-           ↓
-   runtime pool resolution
-
-
-Data governance:
-
-Own schema data
-     │
-     ├── own rows → accessible
-     │
-     └── all app metadata → discoverable
-                              │
-                              ▼
-                     existing data found
-                              │
-                              ▼
-                    explicit share contract
+                  Cloudflare
+                      │
+          *.apps.company.com
+                      │
+              wildcard Load Balancer
+                 /             \
+                ▼               ▼
+           app-prod-01      app-prod-02
 
 
-Continuous assurance:
+Maintenance / scaling:
 
-GitHub Repository
-       ↓
-Scheduled Repository Audit
-       ↓
-security / dependency /
-architecture / data review
+drain host 1 → maintain/resize → verify → re-enable
+drain host 2 → maintain/resize → verify → re-enable
 ```
 
-# Guiding Principles
+# Updated Guiding Principles
 
-> **The repository is the application. Everything else should be derived automatically wherever possible.**
+> **The repository is the application.**
 
-> **Application Owners control application behavior, not deployment infrastructure or deployment policy.**
+> **Application Owners control application behavior; Platform Admins control infrastructure and deployment policy.**
 
-> **A deployment request can deploy only the calling application.**
+> **`main` is source. Production is an explicit promotion of an immutable artifact.**
 
-> **`main` is source; production is an explicit promotion of an immutable, already-tested artifact.**
+> **A runtime pool is a small HA unit of interchangeable hosts, not a general-purpose application scheduler.**
+
+> **Every application assigned to a runtime pool runs on every host in that pool, so any healthy host can serve any application.**
+
+> **Scale vertically and perform host maintenance one machine at a time before introducing more sophisticated placement or orchestration.**
+
+> **Keep ingress dumb: one wildcard Cloudflare load balancer fronts the runtime pool; Kamal Proxy routes requests to applications on each host.**
 
 > **Own locally. Discover globally. Share explicitly.**
 
-> **Search before introducing shared business entities and reuse existing sources of truth rather than copying data.**
+> **Use the simplest architecture and data model that preserves correctness, maintainability and security.**
 
-> **Working code is insufficient: production software must also be understandable, maintainable and secure.**
+> **Every meaningful change receives code review and security review before commit.**
 
-> **Agents apply SOLID and clean-code principles pragmatically, without premature abstractions.**
+> **Agent reasoning and deterministic CI complement one another.**
 
-> **Every meaningful change gets independent code and security review.**
+> **Security remains continuous even when application code has not changed.**
 
-> **Agent reasoning and deterministic tooling complement each other.**
+> **GitHub, Cloudflare, Supabase and Kamal are standardized; the compute underneath remains replaceable.**
 
-> **Security is continuous, including repositories that have not recently changed.**
-
-> **Governance is implemented through agent behavior and technical boundaries rather than approval bureaucracy.**
-
-> **GitHub, Cloudflare, Supabase and Kamal are standardized while compute remains interchangeable.**
-
-This is the version I’d use going forward: essentially the **full fidelity of the existing README**, with our newer deployment model and the new compact data-governance model folded in rather than replacing useful detail.
+I think this is materially cleaner than the sparse-placement version: **two interchangeable hosts, all apps on both, one wildcard load balancer, and rolling host maintenance/vertical scaling.** No front-door application registry and no scheduler.

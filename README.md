@@ -644,10 +644,6 @@ The README links to `BUSINESS.md`, and `AGENTS.md` instructs agents to load the 
 
 ---
 
-on Contract describing the business rules that its implementation must preserve.**
-
----
-
 # 16. CHANGELOG & Versioning
 
 Every application contains:

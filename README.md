@@ -1,12 +1,11 @@
 # monkeyOS
-
 ## Overall Approach & Architecture — Canonical V1
 
 ## 1. Objective
 
 **monkeyOS** is a self-service application platform that can be installed into any GitHub organization.
 
-It enables business users and developers to build, test, review, secure, and deploy production-ready internal applications with minimal infrastructure knowledge.
+It enables business users and developers to build, test, review, secure and deploy production-ready internal applications with minimal infrastructure knowledge.
 
 The intended experience is:
 
@@ -20,18 +19,7 @@ commit
 deploy production
 ```
 
-A coding agent is expected to be the primary development interface, but monkeyOS is deliberately **independent of any specific developer-side agent harness**.
-
-Users should not normally need to understand or operate:
-
-- GitHub Actions internals
-- Kamal
-- Docker hosts
-- Cloudflare
-- Supabase administration
-- container registries
-- cloud networking
-- production infrastructure credentials
+A coding agent is expected to be the primary development interface, but monkeyOS is deliberately independent of any specific developer-side agent harness.
 
 The standardized platform layer is:
 
@@ -43,13 +31,17 @@ Kamal      → deployment
 Pi         → AI execution inside GitHub Actions
 ```
 
-The underlying compute remains interchangeable: Azure, AWS, GCP, Hetzner, bare metal, or other Docker-capable Linux infrastructure.
+The compute underneath remains replaceable: Azure, AWS, GCP, Hetzner, bare metal, or another Docker-capable Linux environment.
+
+The overall goal is:
+
+> **Make building applications extremely easy while keeping infrastructure, security and data-governance boundaries strong.**
 
 ---
 
 # 2. Three-Layer Architecture
 
-monkeyOS has three distinct layers.
+monkeyOS has three layers.
 
 ## Layer 1 — monkeyOS Distribution
 
@@ -61,57 +53,38 @@ monkeyOS
 ├── application scaffold
 ├── reusable workflows
 ├── shared skills
-├── bootstrap logic
+├── provisioning logic
 └── documentation
 ```
 
-It contains no organization-specific assumptions such as:
-
-- GitHub organization name
-- application domain
-- Supabase project identifier
-- cloud provider
-- runtime hostnames
-- credentials
+It contains no organization-specific assumptions such as domains, GitHub organization names, Supabase projects, runtime hosts or credentials.
 
 ## Layer 2 — Organization Installation
 
 monkeyOS is installed once into a GitHub organization.
 
-The installation creates a central repository:
+The organization gets a central repository:
 
 ```text
 <organization>/monkeyos-platform
 ```
 
-It owns the organization's canonical:
+It owns:
 
 ```text
-reusable GitHub workflows
-shared skills
-bootstrap / provisioning tooling
+central reusable workflows
+central skills
+application provisioning
 deployment implementation
 Pi configuration
 platform documentation
 ```
 
-Organization-wide infrastructure and configuration also live at this layer:
-
-```text
-GitHub organization variables
-GitHub organization secrets
-GitHub rulesets
-Supabase environment
-Cloudflare wildcard domain
-Cloudflare load balancer
-runtime pool
-production deployment credentials
-GHCR permissions
-```
+The organization itself holds shared configuration such as GitHub organization variables/secrets, rulesets, Supabase, Cloudflare, runtime hosts and deployment credentials.
 
 ## Layer 3 — Application Repository
 
-An application repository contains primarily application-specific concerns:
+An application repository contains almost exclusively application concerns:
 
 ```text
 finance/
@@ -136,17 +109,69 @@ finance/
         └── audit.yml
 ```
 
-The GitHub workflows are thin managed callers into `monkeyos-platform`.
+The workflows are tiny managed callers into `monkeyos-platform`.
 
-The local monkeyOS skills are synchronized copies of centrally managed skills.
+The skills are synchronized from `monkeyos-platform`.
 
-> **Application repositories contain application-specific decisions; platform behavior is inherited from the organization installation wherever technically possible.**
+> **Application repositories contain application-specific decisions. Platform behavior is inherited centrally wherever technically possible.**
 
 ---
 
-# 3. The Repository Is the Application
+# 3. monkeyOS Has No Central Database State
 
-Repository identity is the primary application identifier.
+This is a hard architectural rule:
+
+> **monkeyOS owns no central application state in Postgres/Supabase.**
+
+There is no monkeyOS database containing:
+
+```text
+applications
+deployment state
+memberships
+user directory
+domains
+runtime assignments
+audit records
+schema registry
+data catalog
+workflow state
+```
+
+monkeyOS is a **control plane and convention layer**, not a runtime database dependency.
+
+State stays with the system that naturally owns it:
+
+```text
+GitHub
+→ source, CI, configuration, deployment history
+
+Supabase Auth
+→ identity
+
+finance.*
+→ Finance application state
+
+hr.*
+→ HR application state
+
+ops.*
+→ Ops application state
+
+Cloudflare
+→ edge/routing configuration
+
+runtime infrastructure
+→ host/runtime state
+```
+
+A standard application never needs to query a monkeyOS database in order to work.
+
+---
+
+# 4. The Repository Is the Application
+
+Repository identity determines application identity.
 
 For example:
 
@@ -154,7 +179,7 @@ For example:
 <organization>/finance
 ```
 
-automatically derives:
+derives:
 
 ```text
 application        finance
@@ -165,7 +190,7 @@ container image    ghcr.io/<organization>/finance:<git-sha>
 production URL     finance.<apps-domain>
 ```
 
-A multi-word repository is normalized predictably:
+Multi-word repositories are normalized predictably:
 
 ```text
 finance-reporting → finance_reporting
@@ -173,17 +198,17 @@ hr-onboarding     → hr_onboarding
 ops-planning      → ops_planning
 ```
 
-The same normalization implementation must be used by local setup, production provisioning, database roles, migrations, and deployment.
+One normalization implementation should be reused by provisioning, migrations, local setup and deployment.
 
 Invalid or colliding names fail explicitly.
 
-There is no separate application registry or deployment-state database.
+There is no separate application registry.
 
 ---
 
-# 4. Convention Over Configuration
+# 5. Convention Over Configuration
 
-A standard application should require almost no platform configuration inside its repository.
+A standard app should require almost no platform configuration.
 
 The platform derives:
 
@@ -203,20 +228,13 @@ production hostname
 runtime deployment
 ```
 
-Normal application repositories do not contain:
-
-- runtime host lists
-- cloud resource IDs
-- Cloudflare configuration
-- Kamal host configuration
-- production SSH configuration
-- platform credentials
+Application repositories do not contain runtime hosts, Cloudflare configuration, production SSH, cloud IDs or Kamal host configuration.
 
 Those belong to the organization installation.
 
 ---
 
-# 5. `main` Is Source, Not Production
+# 6. `main` Is Source, Not Production
 
 ```text
 main
@@ -226,13 +244,13 @@ production
 = explicitly promoted immutable artifact
 ```
 
-Pushing to `main` never automatically deploys.
+A push to `main` never automatically deploys.
 
 Business users may commit directly to `main`.
 
-Developers may use branches where useful, but branching is a collaboration mechanism rather than a platform requirement.
+Branches can be used where helpful, but they are a collaboration mechanism, not a platform requirement.
 
-Production requires an explicit:
+Production requires:
 
 ```text
 deploy production
@@ -240,89 +258,61 @@ deploy production
 
 ---
 
-# 6. Roles and Trust Boundary
+# 7. Roles and Trust Boundary
 
 ## Application Owner
 
 Normally receives GitHub **Write or Maintain**, not Admin.
 
-Controls:
+Controls application code, tests, migrations, dependencies, Dockerfile and application behavior.
 
-```text
-application code
-tests
-SQL migrations
-dependencies
-Dockerfile
-application behavior
-```
-
-Can commit to `main` and deploy their own application.
+Can commit and trigger deployment of their own application.
 
 ## Platform Admin
 
-Controls:
+Controls organization installation, central workflows, central skills, rulesets, production environments, organization configuration, deployment credentials, runtime infrastructure, Cloudflare and shared Supabase setup.
 
-```text
-organization installation
-central workflows
-central skills
-GitHub rulesets
-production environments
-organization variables/secrets
-deployment credentials
-runtime infrastructure
-Cloudflare
-shared Supabase configuration
-```
+The rule is:
 
-The fundamental rule is:
-
-> **Application Owners control what their application does. Platform Admins control where and how it runs.**
+> **Application Owners control what the application does. Platform Admins control where and how it runs.**
 
 ---
 
-# 7. Developer-Side Harness Independence
+# 8. Developer-Side Harness Independence
 
 monkeyOS does not depend on one coding-agent product.
 
-Developers may use any compatible harness.
-
-Conceptually:
+Developers can use any compatible agent harness.
 
 ```text
-compatible coding agent
-        ↓
+coding agent
+    ↓
 AGENTS.md
 +
-synchronized monkeyOS skills
-        ↓
+monkeyOS skills
+    ↓
 Git / gh / Bun / Supabase CLI
 ```
 
-Repository instructions and skills describe desired behavior rather than product-specific features.
+Skills describe desired behavior rather than product-specific features.
 
 For example:
 
-> Perform an independent review. Prefer a fresh reviewer context where the current harness supports it.
+> Perform an independent review and prefer a fresh reviewer context where supported.
 
-The principle is:
-
-> **monkeyOS standardizes engineering behavior and platform interfaces, not the developer's choice of coding-agent harness.**
+monkeyOS standardizes **behavior and interfaces**, not which coding agent someone uses.
 
 ---
 
-# 8. Centralized GitHub Workflows
+# 9. Centralized GitHub Workflows
 
-As much workflow logic as possible lives in:
+As much workflow logic as possible lives centrally:
 
 ```text
 <organization>/monkeyos-platform
 ```
 
-Application repositories contain only thin callers.
-
-For example:
+Application repos contain only tiny callers such as:
 
 ```yaml
 jobs:
@@ -330,32 +320,27 @@ jobs:
     uses: <organization>/monkeyos-platform/.github/workflows/ci.yml@v1
 ```
 
-The same pattern applies to:
+The same model applies to CI, deployment and scheduled audits.
+
+This lets central improvements propagate automatically across applications:
 
 ```text
-CI
-deployment
-repository audits
-AI-powered GitHub workflows
+new scanner
+tool upgrade
+CI improvement
+deployment hardening
+Kamal change
+Pi update
+audit improvement
 ```
 
-This allows platform changes to happen once and propagate automatically across applications.
-
-Examples include:
-
-- security scanner updates
-- tool version upgrades
-- CI improvements
-- deployment hardening
-- Kamal changes
-- audit improvements
-- Pi updates
+without changing every repository.
 
 ---
 
-# 9. Workflow Compatibility Channels
+# 10. Workflow Compatibility Channels
 
-Applications consume central workflows through a protected compatibility channel such as:
+Applications consume monkeyOS-owned workflows through a protected compatibility channel such as:
 
 ```text
 @v1
@@ -366,20 +351,18 @@ The model is:
 ```text
 v1
 → backwards-compatible improvements
-→ automatically inherited
+→ inherited automatically
 
 v2
-→ breaking contract
+→ breaking platform contract
 → deliberate migration
 ```
 
-Third-party GitHub Actions used by central workflows should still be pinned appropriately for supply-chain security.
-
-The monkeyOS `v1` branch itself is protected platform infrastructure.
+Third-party Actions used inside central workflows should still be appropriately pinned.
 
 ---
 
-# 10. AI Execution Inside GitHub Actions
+# 11. AI Inside GitHub Actions
 
 Developer-side agents remain harness-independent.
 
@@ -387,34 +370,32 @@ Inside GitHub Actions:
 
 > **Any AI-powered workflow uses Pi.**
 
-Examples:
+For example:
 
 ```text
 repository audit
-AI security review
-AI architecture review
+security review
+architecture review
 automated maintenance
 ```
 
-The application does not choose the AI harness.
+The application repository does not choose or install an Actions-side AI harness.
 
 ```text
-Application repo
+Application Repo
       ↓
-central reusable workflow
+central workflow
       ↓
 Pi
       ↓
 central monkeyOS skill
-      ↓
-AI task
 ```
 
-Pi's version, configuration, and model access are controlled centrally.
+Pi's version, model access and configuration are controlled centrally.
 
 ---
 
-# 11. Centrally Managed Skills
+# 12. Centrally Managed Skills
 
 Canonical skills live in:
 
@@ -422,7 +403,7 @@ Canonical skills live in:
 <organization>/monkeyos-platform/skills/
 ```
 
-Initial skills include:
+Initial skills:
 
 ```text
 start
@@ -438,174 +419,82 @@ database-migration
 repository-audit
 ```
 
-Applications synchronize them into:
+They synchronize into:
 
 ```text
 .monkeyos/skills/
 ```
 
-The mechanism should remain deliberately simple: plain files synchronized from the organization's central repository.
+The mechanism remains simple: plain files synchronized from the organization's central repository.
 
-Synchronized files are monkeyOS-managed and should not be edited as application code.
+Synchronized files are clearly marked as monkeyOS-managed.
 
 ---
 
-# 12. `AGENTS.md` Is Repository-Focused
+# 13. `AGENTS.md` Is Repository-Focused
 
-`AGENTS.md` answers:
+`AGENTS.md` answers only:
 
 > **How should an agent safely modify this application?**
 
-It should contain only repository-relevant guidance.
+It contains the app's stack, engineering standards, state-management rules, data rules, application-security rules and testing expectations.
 
-## Stack
-
-```text
-Bun
-strict TypeScript
-
-React 19
-React Compiler
-React Router
-Vite
-
-Tailwind
-Base UI
-shadcn
-
-React Hook Form
-Zod
-
-TanStack Query
-TanStack Table
-
-Supabase
-supabase-js
-SQL migrations
-
-oxfmt
-oxlint
-
-Bun test
-Playwright
-```
-
-## Engineering
+It does **not** explain:
 
 ```text
-SOLID and clean, but simple
-strong typing
-clear responsibility boundaries
-avoid speculative abstraction
-mobile friendly
-accessible
-test meaningful behavior
+Kamal internals
+production SSH
+Cloudflare maintenance
+runtime topology
+central deployment implementation
+platform operations
 ```
 
-## State
+One platform rule is sufficient:
 
-```text
-server state        → TanStack Query
-local UI state      → React
-shared client state → Zustand only when justified
-shareable state     → URL
-```
-
-## Data
-
-> **Own locally. Discover globally. Share explicitly.**
-
-## Application security
-
-```text
-validate untrusted input
-do not expose secrets
-no service_role in browser code
-minimize PII
-safe handling of HTML / URLs / uploads
-RLS and grants required
-```
-
-It should not contain Kamal internals, SSH architecture, runtime topology, Cloudflare maintenance procedures, or other platform-operation details.
+> **monkeyOS-managed files must not be modified as normal application code.**
 
 ---
 
-# 13. `README.md` Is the Application Front Door
+# 14. README Is the Application Front Door
 
-Every application must have a useful top-level:
+Every application has a useful top-level:
 
 ```text
 README.md
 ```
 
-A normal user or coding agent should not need to find a separate documentation directory before they can understand or work on the application.
+No separate docs directory should be needed for normal application development.
 
-The README should contain:
+The README explains:
 
-## What the application does
+- what the application does;
+- how to get started;
+- common monkeyOS commands;
+- how login and access work;
+- what business data the app owns;
+- what external data it consumes;
+- how commit and deployment work at a user level;
+- current application version.
 
-A short business description.
-
-For example:
-
-> Finance Reporting helps the Finance team review, correct, and publish recurring financial reports.
-
-## Getting started
+Getting started should be approximately:
 
 ```text
-1. Clone the repository
+1. Clone repository
 2. Authenticate GitHub if necessary
-3. Open it with your preferred coding agent
+3. Open with your preferred coding agent
 4. Ask: "start app"
 ```
 
-## Common actions
+If the application has not yet been provisioned, the only platform request should be:
 
-```text
-start app
-check environment
-test app
-commit
-deploy production
-rollback production
-add secret
-```
-
-## Access
-
-A short explanation that users authenticate through shared Supabase Auth and app admins manage membership through the application's **Access** page.
-
-## Data ownership
-
-A concise description of:
-
-- what business data this application owns;
-- which other data sources/contracts it consumes.
-
-## Deployment
-
-Keep this at the user level:
-
-> `commit` saves and validates changes.  
-> `deploy production` explicitly promotes a tested version to production.
-
-No runtime-infrastructure explanation.
-
-## Current version
-
-For example:
-
-```text
-Current version: 1.6.2
-```
-
-with a pointer to `CHANGELOG.md`.
+> **Provision this repository as a monkeyOS application.**
 
 ---
 
-# 14. CHANGELOG and Application Versioning
+# 15. CHANGELOG and Versioning
 
-Every application includes:
+Every application contains:
 
 ```text
 CHANGELOG.md
@@ -613,76 +502,46 @@ CHANGELOG.md
 
 The coding agent maintains it automatically.
 
-It records meaningful user/business changes, not implementation trivia.
-
-Example:
+It records meaningful business/user changes, for example:
 
 ```markdown
-# Changelog
-
-## 1.4.0 — 2026-08-19
+## 1.4.0
 
 ### Added
-- Added approval of monthly Finance reports.
-- Added filtering by reporting period.
+- Added approval of monthly reports.
 
 ### Fixed
-- Fixed incorrect totals for reversed transactions.
+- Fixed incorrect totals for reversed entries.
 ```
 
-Avoid entries such as:
+It should not become a dump of internal refactoring details.
 
-> Refactored query hook.
+Applications use pragmatic semantic versioning:
 
-unless they are operationally meaningful.
+```text
+new capability   → MINOR
+bug fix          → PATCH
+breaking change  → MAJOR
+```
 
-The changelog answers:
+The canonical version lives in `package.json`.
 
-> **What changed in this application?**
+CI verifies that the application version and latest changelog version agree.
 
 ---
 
-## Semantic versioning
+# 16. Versioning Is Part of `commit`
 
-Applications use:
-
-```text
-MAJOR.MINOR.PATCH
-```
-
-with a pragmatic convention:
-
-```text
-new feature / capability → MINOR
-bug fix                  → PATCH
-breaking application change → MAJOR
-```
-
-Tests, documentation, formatting, or internal refactoring do not normally bump the version unless they materially change application behavior.
-
-The canonical application version lives in:
-
-```text
-package.json
-```
-
-CI verifies that the latest changelog version and application version are consistent.
-
----
-
-# 15. Versioning Is Part of the Commit Skill
-
-The central `commit` skill first evaluates the change.
+The central `commit` skill performs:
 
 ```text
 inspect change
 ↓
 classify change
 ↓
-if application behavior changed:
-    update CHANGELOG.md
-    determine version bump
-    update package.json
+if meaningful application behavior changed:
+    update CHANGELOG
+    update semantic version
 ↓
 format
 ↓
@@ -702,187 +561,162 @@ security review
 ↓
 fix blocking findings
 ↓
-rerun checks
+rerun affected checks
 ↓
 commit
 ↓
 push
 ```
 
-The distinction is:
-
-> **The agent determines what changed. CI verifies that release metadata is internally consistent.**
-
----
-
-# 16. Production Version Identity
-
-Production retains both human-readable and exact technical identity:
+Production can therefore identify both:
 
 ```text
-Version    1.6.2
-Commit     a83f72c
+Version   1.6.2
+Commit    a83f72c
 ```
 
-The immutable deployment identity remains the Git SHA.
-
-The semantic version provides a useful human-facing release number.
-
-Every app should expose this unobtrusively through an About/Help area or equivalent.
+The Git SHA remains the immutable technical deployment identity.
 
 ---
 
-# 17. Authentication Is Built Into Every Application
+# 17. Authentication Is Built In
 
-Every monkeyOS application starts with working login.
+Every monkeyOS app starts with working authentication.
 
 ```text
 Login
   ↓
 Supabase Auth
   ↓
-Application membership check
+app membership
   ↓
 Application
 ```
 
 Supabase Auth owns identity.
 
-Applications do not implement their own identity systems.
+Applications do not build their own identity system.
 
-The default behavior is fail-closed:
+Default behavior is fail-closed:
 
 ```text
 not authenticated
 → login
 
-authenticated + app member
+authenticated + member
 → application
 
 authenticated + not member
-→ "You don't have access to this application"
+→ access denied
 ```
-
-This should be functional in the scaffold, not left as an exercise for each application builder.
 
 ---
 
-# 18. Each Application Owns Its User Access
+# 18. Every Application Owns Its Membership
 
-Identity is shared, but authorization belongs to each application.
+Identity is shared through Supabase Auth.
 
-For a `finance` application:
+Authorization belongs to each application.
+
+For Finance:
 
 ```text
 auth.users
-   │
-   │ shared identity
-   ▼
+    ↓
 finance.members
 ```
 
-The standard membership model should remain small:
+The standard table is deliberately small:
 
 ```text
 finance.members
 
 user_id
-role             admin | member
+role        admin | member
 created_at
 created_by
 ```
 
-Every scaffold includes an admin-only **Access** page:
+There is **no central membership table**.
+
+There is **no shared user directory**.
+
+Every application scaffold includes an admin-only **Access** page.
+
+An app admin can:
 
 ```text
-Access
-
-alice@company.com        Admin       Remove
-bob@company.com          Member      Remove
-
-[ Add user ]
+add existing Supabase user by exact email
+change admin/member role
+remove application access
 ```
 
-App admins can:
+Removing someone from Finance affects only `finance.members`.
 
-- add an existing Supabase user by exact email;
-- change `admin` / `member`;
-- remove application access.
-
-Removing a user from an app removes only that application's membership.
-
-It does not delete their Supabase identity or affect access to another app.
-
-There is no shared user directory.
+It does not delete their Supabase identity or change their access elsewhere.
 
 ---
 
-# 19. User Lookup Is Narrow and Server-Side
+# 19. User Lookup Is Narrow
 
-Normal application browser code does not receive general access to `auth.users`.
+Normal browser code does not get general access to `auth.users`.
 
-When adding a user:
+Adding a member works conceptually as:
 
 ```text
 exact email
 ↓
 narrow privileged lookup
 ↓
-matching auth user ID
+matching Supabase Auth user
 ↓
-insert into <app>.members
+insert into finance.members
 ```
 
-If no user exists:
+There is no user-directory browsing or central replicated identity table.
 
-```text
-User not found.
-```
+The initial application owner should normally become the first application `admin` during provisioning.
 
-The app does not expose or browse the wider identity database.
-
-When a new application is provisioned, the requester/application owner should normally become the initial `admin`.
-
-The rule is:
-
-> **Identity is shared. Authorization is owned locally by each application.**
+> **Identity is shared. Authorization is local.**
 
 ---
 
-# 20. Membership Is Enforced With RLS
+# 20. Membership Is Enforced in the Database
 
-Application access is not merely a UI convention.
+Access is not just a UI convention.
 
-Database policies enforce membership.
-
-Conceptually:
+RLS enforces membership.
 
 ```text
 auth.uid()
 ↓
-member of finance?
+finance member?
 ↓
-yes → permitted application access
+yes → permitted
 no  → denied
 ```
 
-Admin-only operations additionally check the user's application role.
+Admin-only operations additionally verify the application role.
 
-Hiding an admin button is not an authorization mechanism.
+Hiding a button is never treated as authorization.
 
 ---
 
-# 21. Audit Trails Are a Scaffold Capability
+# 21. Business Audit Trails Are Built In
 
-Supabase provides useful authentication and platform logs, but monkeyOS applications also need **business-level audit history**.
+Supabase Auth/platform logs handle infrastructure and identity-level events.
 
-Every scaffold therefore contains a simple audit mechanism.
+Applications additionally own their own **business audit history**.
 
-Conceptually:
+For example:
 
 ```text
 finance.audit_log
+```
 
+A simple record may contain:
+
+```text
 timestamp
 actor_user_id
 action
@@ -892,86 +726,241 @@ before
 after
 ```
 
-The implementation should be database-backed where practical so auditing does not depend entirely on one particular UI flow.
+There is no:
 
-The rule is:
+```text
+monkeyos.audit_log
+platform.audit_log
+global application audit table
+```
+
+Each application's audit history belongs to that application.
 
 > **Changes that matter to the business should be traceable.**
 
 ---
 
-# 22. What Should Be Audited
+# 22. What Is Audited
 
-Not every database read needs to become a permanent business audit record.
+The scaffold provides the mechanism, but does not turn every database operation into permanent audit history.
 
-Audit history should focus on meaningful changes such as:
+Audit meaningful changes such as:
 
-- approvals;
-- important status transitions;
-- financial changes;
-- permission changes;
-- changes to sensitive records;
-- other material business actions.
+```text
+approvals
+important status changes
+financial changes
+permission changes
+sensitive record changes
+other material business actions
+```
 
 Membership changes are always audited.
 
 For example:
 
 ```text
-2026-08-19 14:32
 actor: alice
 action: membership_removed
-user: bob
+subject: bob
 previous_role: member
 ```
 
-The standard scaffold provides the audit mechanism; individual applications can extend which business entities use it.
-
-This should remain simple rather than evolving into a generic event-sourcing framework.
+The design should remain simple rather than becoming an event-sourcing framework.
 
 ---
 
-# 23. Simplified Application Onboarding
+# 23. No Central Platform Data Model
 
-The application README assumes the GitHub organization has already been configured for monkeyOS.
+Shared business concepts do not belong to monkeyOS itself.
 
-For a normal developer:
-
-```text
-1. Clone repository
-2. Authenticate GitHub if needed
-3. Ask the coding agent: "start app"
-```
-
-If the repository has not yet been provisioned, the only platform request should be:
-
-> **Provision this repository as a monkeyOS application.**
-
-The standard provisioning process derives:
+For example, monkeyOS should not create central tables for:
 
 ```text
-repository
-↓
-application name
-↓
-database schema
-↓
-developer role
-↓
-runtime role
-↓
-initial application admin
-↓
-production environment
-↓
-standard platform controls
+employees
+stores
+customers
+products
+suppliers
+finance records
+application memberships
+business audit records
 ```
 
-The user does not need to individually request schema naming, Cloudflare configuration, runtime hosts, deployment SSH, GHCR, or audit setup.
+Those belong to whichever application/domain actually owns them.
+
+This is an important boundary:
+
+> **monkeyOS governs applications; it does not become another business domain.**
 
 ---
 
-# 24. Local Development
+# 24. Data Architecture & Governance
+
+The data principle remains:
+
+> **Own locally. Discover globally. Share explicitly.**
+
+## Own locally
+
+Each app owns its own schema and business state.
+
+```text
+Production Supabase
+├── auth
+├── finance
+├── hr
+├── ops
+├── procurement
+└── reporting
+```
+
+Notice that there is **no monkeyOS/platform schema containing central state**.
+
+## Discover globally
+
+Development roles may inspect database structure across other schemas:
+
+```text
+tables
+views
+columns
+types
+relationships
+comments
+```
+
+but this does not grant row access.
+
+Example:
+
+```text
+finance_dev
+
+finance.*      → metadata + data
+hr.*           → metadata only
+ops.*          → metadata only
+procurement.*  → metadata only
+```
+
+Metadata discovery should derive from PostgreSQL's actual catalogs, not from a monkeyOS-maintained catalog.
+
+If helper functions/views are required to expose this safely, they must be **stateless database interfaces**, not tables containing monkeyOS-owned metadata.
+
+## Share explicitly
+
+If another domain already owns the information, reuse it through explicit contracts.
+
+Cross-domain reads can use narrow:
+
+```text
+views
+functions / RPC
+APIs
+```
+
+Cross-domain writes require operations controlled by the source domain rather than broad write access.
+
+> **Use the simplest relational model that preserves business meaning and integrity.**
+
+---
+
+# 25. Supabase Architecture
+
+One Supabase project represents an environment/trust boundary, not an individual app.
+
+Shared:
+
+```text
+Supabase Auth
+```
+
+App-local:
+
+```text
+finance.*
+hr.*
+ops.*
+```
+
+This allows a person to have one identity but different permissions across applications.
+
+```text
+Supabase Auth
+     │
+ ┌───┼──────────┐
+ ▼   ▼          ▼
+finance.members hr.members ops.members
+```
+
+No platform-owned identity mirror or shared membership store is required.
+
+---
+
+# 26. Database Roles
+
+For `finance`:
+
+## Developer
+
+```text
+finance_dev
+```
+
+gets:
+
+```text
+own-schema development access
+structural metadata discovery
+explicit cross-domain contracts
+```
+
+Never broad roles such as:
+
+```text
+postgres
+project owner
+service_role
+```
+
+## Runtime
+
+```text
+finance_runtime
+```
+
+gets:
+
+```text
+required own-schema access
+required explicit contracts
+no DDL
+no global metadata discovery
+```
+
+Security boundaries rely on grants/RLS, not naming conventions.
+
+---
+
+# 27. Database Security Defaults
+
+Use a fail-closed posture:
+
+```text
+Data API                         ON
+Automatically expose new tables OFF
+Automatic RLS                   ON
+```
+
+New objects require explicit authorization.
+
+SQL migrations are canonical.
+
+No ORM.
+
+---
+
+# 28. Local Development
 
 Required locally:
 
@@ -988,7 +977,7 @@ Not required:
 
 ```text
 Kamal
-cloud provider CLI
+cloud CLI
 production SSH
 production DB credentials
 Cloudflare CLI
@@ -996,7 +985,7 @@ GitHub runner
 GHCR credentials
 ```
 
-Applications develop against a local Supabase stack:
+Applications develop against local Supabase:
 
 ```text
 Application
@@ -1009,22 +998,16 @@ Local Supabase
     └── seed data
 ```
 
-Production is not used as the normal local development database.
+Production is not the normal development database.
 
 ---
 
-# 25. Self-Service `start`
+# 29. `start app`
 
-The user says:
-
-```text
-start app
-```
-
-The centrally managed `start` skill performs approximately:
+The `start` skill performs approximately:
 
 ```text
-check development tools
+check tools
 ↓
 synchronize monkeyOS skills
 ↓
@@ -1036,23 +1019,23 @@ start local Supabase
 ↓
 apply migrations
 ↓
-seed database
+seed DB/Auth
 ↓
-generate database types
+generate types
 ↓
-start application
+start app
 ↓
 report URL
 ```
 
-The scaffold's local seed should make login and access management easy to test locally.
+Local seeds should make login, membership and access-management testing straightforward.
 
 ---
 
-# 26. Standard Application Stack
+# 30. Standard Application Stack
 
 ```text
-Runtime/package manager  Bun only
+Runtime/package manager  Bun
 Language                 strict TypeScript
 
 Frontend                 React 19
@@ -1077,8 +1060,8 @@ Charts                   Recharts v3
 
 Database                 Supabase Postgres
 Client                   supabase-js
-Schema management        SQL migrations
-ORM                      none
+Schema                    SQL migrations
+ORM                       none
 
 Formatting               oxfmt
 Linting                  oxlint
@@ -1087,212 +1070,31 @@ Unit tests               Bun test
 E2E                      Playwright
 ```
 
-No central monkeyOS application-component library.
+No normal server-data fetching via `useEffect`.
 
-Do not duplicate server data into Zustand.
+With React Compiler, avoid routine manual memoization unless profiling justifies it.
 
-Do not use `useEffect` as the normal server-data fetching mechanism.
-
-With React Compiler, do not routinely introduce `useMemo`, `useCallback`, or `React.memo` unless profiling demonstrates a need.
+No central monkeyOS UI component framework.
 
 ---
 
-# 27. Engineering Philosophy
+# 31. Engineering Philosophy
 
 > **SOLID and clean, but simple.**
 
-Avoid under-engineering:
+Avoid under-engineering such as giant components, duplicated business logic, untyped data, hidden side effects and ad-hoc state management.
 
-```text
-giant components
-duplicated business logic
-untyped data
-hidden side effects
-business logic embedded directly in UI
-ad-hoc state
-```
+Avoid over-engineering such as speculative frameworks, unnecessary factories/interfaces, premature extensibility and deep indirection.
 
-Avoid over-engineering:
-
-```text
-unnecessary interfaces
-factories without real need
-generic internal frameworks
-premature extensibility
-deep abstraction hierarchies
-excessive indirection
-```
-
-Abstractions should exist because they solve a concrete problem.
+Abstractions should solve concrete problems.
 
 ---
 
-# 28. Data Architecture & Governance
+# 32. Review and Security Loop
 
-The governing model remains:
-
-> **Own locally. Discover globally. Share explicitly.**
-
-## Own locally
-
-Each application owns its own schema and application-specific data.
-
-For example:
+Every meaningful change follows:
 
 ```text
-Production Supabase
-├── auth
-├── platform
-├── finance
-├── hr
-├── ops
-├── procurement
-└── reporting
-```
-
-## Discover globally
-
-Development roles can inspect structural metadata across application schemas:
-
-```text
-tables
-views
-columns
-types
-relationships
-comments
-```
-
-but cannot access their row data merely because the structure is discoverable.
-
-For example:
-
-```text
-finance_dev
-
-finance.*      → metadata + data
-hr.*           → metadata only
-ops.*          → metadata only
-procurement.*  → metadata only
-```
-
-Metadata comes directly from PostgreSQL catalogs through a constrained platform-owned interface.
-
-There is no manually maintained data catalog.
-
-Before creating an important business entity, the migration process checks whether an existing source of truth already exists.
-
-## Share explicitly
-
-Existing sources should be reused rather than copied.
-
-Cross-domain reads use narrow contracts such as:
-
-```text
-views
-functions / RPC
-APIs
-```
-
-Cross-domain writes require explicit operations owned by the source domain.
-
-> **Use the simplest relational model that preserves business meaning and integrity.**
-
----
-
-# 29. Supabase Architecture
-
-A Supabase project represents an environment/trust boundary, not one individual application.
-
-Applications may therefore share Supabase Auth while retaining separate application authorization.
-
-```text
-User
- ↓
-Supabase Auth
- ↓
-JWT
- ↓
-app membership + RLS
- ↓
-authorized application data
-```
-
-## Developer role
-
-Example:
-
-```text
-finance_dev
-```
-
-Gets:
-
-```text
-own-schema development access
-global structural metadata discovery
-explicitly approved cross-domain contracts
-```
-
-Never:
-
-```text
-postgres
-project owner
-service_role
-```
-
-## Runtime role
-
-Example:
-
-```text
-finance_runtime
-```
-
-Gets:
-
-```text
-required own-schema access
-explicitly required cross-domain runtime contracts
-no DDL
-no global metadata discovery
-```
-
----
-
-# 30. Database Security Defaults
-
-Use a fail-closed posture.
-
-For example:
-
-```text
-Data API                         ON
-Automatically expose new tables OFF
-Automatic RLS                   ON
-```
-
-New data requires explicit:
-
-```text
-grants
-RLS
-authorization
-cross-domain access
-```
-
-SQL migrations remain canonical.
-
----
-
-# 31. Development Review Loop
-
-Every meaningful application change follows:
-
-```text
-understand
-↓
 implement
 ↓
 test
@@ -1310,7 +1112,7 @@ quality gate
 commit
 ```
 
-Findings are:
+Findings:
 
 ```text
 BLOCKING
@@ -1318,56 +1120,17 @@ IMPORTANT
 SUGGESTION
 ```
 
-No commit while blocking findings remain.
+No commit with blocking findings.
 
----
-
-# 32. Code and Security Review
-
-Code review covers:
-
-- correctness
-- edge cases
-- errors
-- validation
-- architecture
-- responsibilities
-- abstraction quality
-- simplicity
-- duplication
-- React/state patterns
-- database design
-- data ownership
-- mobile behavior
-- accessibility
-- testing
-
-Security review separately covers:
-
-- authentication
-- application membership
-- authorization
-- RLS
-- schema boundaries
-- cross-domain access
-- audit coverage
-- PII
-- logging
-- input validation
-- injection
-- secrets
-- dependencies
-- browser security
-- uploads
-- container security
+Security review covers authentication, membership, authorization, RLS, schema boundaries, cross-domain access, audit coverage, PII, logging, validation, injection, secrets, dependencies, browser security, uploads and container security.
 
 ---
 
 # 33. Continuous Integration
 
-Application CI is a thin caller into the central monkeyOS workflow.
+App CI is a tiny caller to central monkeyOS CI.
 
-The central CI performs:
+The central workflow runs:
 
 ```text
 format
@@ -1382,7 +1145,7 @@ migration tests
 ↓
 RLS / membership tests
 ↓
-audit behavior tests where relevant
+audit tests where relevant
 ↓
 dependency/security checks
 ↓
@@ -1397,62 +1160,58 @@ Docker build
 GHCR publish
 ```
 
-CI should also verify release metadata consistency:
+CI also validates version/changelog consistency.
 
-```text
-package.json version
-=
-latest CHANGELOG version
-```
-
-> **Agent reasoning provides contextual review. CI provides deterministic verification.**
+> **Agent reasoning provides contextual review; CI provides deterministic verification.**
 
 ---
 
-# 34. Immutable Artifact Model
+# 34. Immutable Artifacts
 
-Successful CI creates:
+Successful CI produces:
 
 ```text
 ghcr.io/<organization>/<repository>:<git-sha>
 ```
 
-The artifact is:
+The image is:
 
 ```text
 built once
 tested once
-security checked
+security checked once
 deployed unchanged
 ```
 
-Production deployment never rebuilds application source.
+Production never rebuilds source.
 
 ---
 
 # 35. GitHub as Platform Control Plane
 
-GitHub provides:
+GitHub owns the platform state it is already good at:
 
 ```text
 source control
-CI
-reusable workflows
+CI status
+workflow definitions
+deployment history
 organization variables
 organization secrets
 production environment secrets
 GHCR
-deployment history
 scheduled audits
 ```
 
-There is no separate application registry or deployment-state service.
+monkeyOS does not mirror this state into Supabase.
+
+There is no monkeyOS application registry or deployment-state DB.
 
 ---
 
 # 36. Runtime Architecture
 
-A runtime pool is a **small HA cell**, not a general-purpose scheduler.
+A runtime pool is a **small HA cell**, not an application scheduler.
 
 V1:
 
@@ -1463,7 +1222,7 @@ production/default
 └── app-prod-02
 ```
 
-Every standard application runs on both hosts.
+Every standard app runs on every host:
 
 ```text
 app-prod-01
@@ -1479,23 +1238,47 @@ app-prod-02
 └── reporting
 ```
 
-There is deliberately no:
+There is no app→server registry, scheduler, placement algorithm or routing database.
 
-```text
-app → server mapping
-placement algorithm
-scheduler
-routing registry
-application-aware routing service
-```
-
-> **Any healthy runtime host can serve any standard application in the pool.**
+> **Any healthy host can serve any standard app in its pool.**
 
 ---
 
-# 37. Cloudflare Front Door
+# 37. Runtime Configuration
 
-One wildcard Cloudflare Load Balancer fronts the pool:
+The organization owns:
+
+```text
+PROD_DEFAULT_HOSTS
+```
+
+for example:
+
+```text
+app-prod-01.example.com,app-prod-02.example.com
+```
+
+as a GitHub organization variable.
+
+The central deployment workflow derives:
+
+```text
+repo
+↓
+production/default
+↓
+PROD_DEFAULT_HOSTS
+↓
+Kamal hosts
+```
+
+Again, there is no database table storing application placement.
+
+---
+
+# 38. Cloudflare Front Door
+
+One wildcard Cloudflare Load Balancer fronts the runtime pool:
 
 ```text
 *.apps.company.com
@@ -1509,48 +1292,40 @@ One wildcard Cloudflare Load Balancer fronts the pool:
 kamal-proxy kamal-proxy
 ```
 
-Because every standard app exists on both hosts, no application-specific Cloudflare routing is required.
+Every app is on every host, so there is no app-specific routing registry.
 
-No normal per-app:
-
-- DNS record
-- load balancer
-- routing entry
-- Worker/router
-
-is necessary.
+No normal per-app DNS or load balancer is required.
 
 ---
 
-# 38. Production Deployment
-
-Application repo:
+# 39. Production Deployment
 
 ```text
-managed deploy caller
-        ↓
+Application repo
+      ↓
+tiny managed caller
+      ↓
 monkeyos-platform
-        ↓
+      ↓
 GitHub-hosted runner
-        ↓
+      ↓
 Kamal
-        ↓
-runtime pool
+      ↓
+runtime hosts
 ```
 
 The application cannot choose:
 
 ```text
-target repository
-runtime hosts
+target hosts
 runtime pool
-production domain
+domain
 SSH target
 Docker privileges
 host mounts
 ```
 
-The effective operation remains:
+The effective operation is:
 
 ```text
 deploy_this_repository()
@@ -1558,40 +1333,31 @@ deploy_this_repository()
 
 ---
 
-# 39. Deployment Security
+# 40. Deployment Security
 
-The trusted sequence is:
+Trusted deployment sequence:
 
 ```text
-verify CI succeeded
+verify CI
 ↓
-verify immutable GHCR artifact
+verify immutable image
 ↓
-load production deployment credentials
+load production SSH credential
 ↓
 generate trusted temporary Kamal config
 ↓
 kamal deploy
 ```
 
-After production credentials are loaded, arbitrary application-controlled scripts must not execute.
+No arbitrary application-controlled scripts execute after deployment credentials are loaded.
 
-Production SSH never belongs in:
-
-```text
-local development
-ordinary CI
-application runtime
-application source
-```
+Production SSH is never exposed to local development, ordinary CI or the application runtime.
 
 ---
 
-# 40. Container Privilege Boundary
+# 41. Container Privilege Boundary
 
-Application Owners control their application image.
-
-They do not control host-level Docker capabilities.
+Application Owners control the application image, not the Docker host.
 
 Applications cannot request:
 
@@ -1604,15 +1370,13 @@ arbitrary host ports
 arbitrary Docker flags
 ```
 
-Those remain under monkeyOS control.
+These remain centrally controlled.
 
 ---
 
-# 41. Availability and Scaling
+# 42. Availability and Scaling
 
-The two-host pool provides application-level redundancy.
-
-Infrastructure maintenance is rolling:
+Maintenance and vertical resizing happen one host at a time:
 
 ```text
 drain prod-01
@@ -1632,19 +1396,17 @@ verify
 restore
 ```
 
-This applies to VM resizing, host replacement, OS/Docker maintenance, and similar operations.
+Vertical scaling remains the default V1 strategy.
 
-Vertical scaling is the default V1 strategy.
-
-> **Scale the small HA cell vertically before adding scheduling complexity.**
+> **Scale the small HA cell vertically before introducing scheduling complexity.**
 
 ---
 
-# 42. Secrets and Configuration
+# 43. Secrets and Configuration
 
-## Organization variables
+Platform configuration uses the systems already responsible for it.
 
-Examples:
+Examples of GitHub organization variables:
 
 ```text
 PROD_DEFAULT_HOSTS
@@ -1654,48 +1416,37 @@ SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 ```
 
-## Organization secrets
+Shared sensitive values use organization secrets.
 
-Shared sensitive platform values.
+App-specific production secrets use that repository's `production` environment.
 
-## Repository `production` environment secrets
+No monkeyOS database exists to store or mirror these values.
 
-Application-specific production credentials, such as:
-
-```text
-DATABASE_URL
-third-party API credentials
-application-specific secrets
-```
-
-Normal app repositories should not need repository-level platform configuration variables.
-
-Secrets are never printed back to users or agents.
+Secrets are never printed back to users or coding agents.
 
 ---
 
-# 43. Mobile and Testing
+# 44. Mobile and Testing
 
-Every application must support:
+Every app must support mobile, tablet and desktop.
+
+Tests should cover:
 
 ```text
-mobile
-tablet
-desktop
+authentication
+membership
+user management
+RLS
+audit behavior
+CRUD
+navigation
+reload
+permissions
+error states
+responsive layouts
 ```
 
-Requirements include:
-
-- no horizontal overflow
-- usable navigation
-- mobile-friendly forms
-- viewport-safe dialogs
-- appropriate touch targets
-- accessible primary actions
-- sensible mobile tables
-- loading, empty, and error states
-
-Playwright should cover representative viewports around:
+Representative Playwright sizes:
 
 ```text
 390 × 844
@@ -1703,20 +1454,16 @@ Playwright should cover representative viewports around:
 1440 × 900
 ```
 
-Tests should cover authentication, membership, access management, CRUD, reload, permissions, and important error behavior.
-
 ---
 
-# 44. Continuous Repository Security
+# 45. Continuous Repository Security
 
-Security operates at two levels:
+Security operates at:
 
 ```text
-CHANGE LEVEL
-every meaningful change
-
-REPOSITORY LEVEL
-scheduled reassessment
+change level
++
+scheduled repository level
 ```
 
 AI-enabled scheduled audits run:
@@ -1728,245 +1475,174 @@ central monkeyOS workflow
 ↓
 Pi
 ↓
-central review/security skills
+central security/review skills
 ```
 
 The audit asks:
 
 > **Would we still consider this application secure and maintainable if we built it today?**
 
-It checks areas such as dependencies, authentication, membership and authorization, RLS, audit coverage, data architecture, PII, secrets, frontend/API security, Docker, Actions, deployment, logging, complexity, duplication, obsolete workarounds, and missing tests.
+It checks dependencies, auth, membership, RLS, audit coverage, data ownership, PII, secrets, frontend/API security, Docker, GitHub Actions, deployment and important missing tests.
 
-It should surface material issues rather than cause stylistic churn.
+No style-only churn.
 
 ---
 
-# 45. Standard Application Scaffold Guarantee
+# 46. Standard Application Scaffold Guarantee
 
-A newly provisioned monkeyOS repository should **not** be an empty React project.
-
-It should already provide:
+A new monkeyOS app should already provide:
 
 ```text
+✓ README.md
+✓ CHANGELOG.md
+✓ semantic versioning
+✓ version + Git SHA identification
+
 ✓ working login/logout
-✓ shared Supabase Auth integration
+✓ shared Supabase Auth
 ✓ protected routes
+
 ✓ <app>.members
 ✓ admin/member roles
 ✓ admin-only Access page
 ✓ add existing user by exact email
-✓ change role
+✓ role changes
 ✓ remove app access
-✓ RLS-backed authorization
+✓ RLS-backed membership authorization
+
+✓ <app>.audit_log
 ✓ membership-change auditing
-✓ general business audit mechanism
-✓ responsive mobile/tablet/desktop shell
-✓ useful README.md
-✓ automatically maintained CHANGELOG.md
-✓ semantic application version
-✓ version + Git SHA identification
+✓ standard business-audit mechanism
+
 ✓ local Supabase
+✓ responsive app shell
 ✓ tests
 ✓ review/security workflow
-✓ deterministic CI
+✓ central deterministic CI
 ✓ immutable GHCR artifact
 ✓ explicit production deployment
 ```
 
-The person creating an application can therefore focus immediately on **the business problem**.
-
----
-
-# 46. Organization Installation
-
-Installing monkeyOS once establishes:
+It does **not** require:
 
 ```text
-<org>/monkeyos-platform
-↓
-central reusable workflows
-central skills
-Pi
-bootstrap/provisioning tooling
-↓
-GitHub organization variables/secrets
-↓
-GitHub rulesets
-↓
-Supabase
-↓
-Cloudflare
-↓
-runtime pool
-↓
-deployment credentials
+monkeyOS database
+platform schema with central state
+central user directory
+central membership tables
+central audit table
+central application registry
+central deployment-state table
+central data catalog
 ```
 
-After this, creating an application should be routine provisioning rather than an infrastructure project.
+A new repository is therefore already a **secure, governable application shell**, while its business state remains entirely owned by the application itself.
 
 ---
 
 # 47. New Application Provisioning
 
-A normal flow is:
+The normal flow is:
 
 ```text
 create repository from scaffold
 ↓
-provision repository as monkeyOS application
+provision as monkeyOS application
 ↓
-derive identity from repo name
-↓
-create schema / roles
+derive schema and roles from repo name
 ↓
 configure production environment
 ↓
-make requester initial admin
+make requester initial application admin
 ↓
-apply standard platform controls
+apply standard controls
 ↓
-grant Application Owner Write/Maintain
+grant Write/Maintain
 ```
 
-Normal development is then self-service.
+Provisioning may execute configuration changes against GitHub, Supabase and infrastructure, but it does not register the app in a monkeyOS database.
 
----
-
-# 48. Normal Developer Lifecycle
-
-```text
-clone repository
-↓
-authenticate GitHub
-↓
-start app
-↓
-build
-↓
-commit
-↓
-central CI
-↓
-immutable GHCR artifact
-↓
-deploy production
-```
-
-Developers should not routinely need to ask for:
-
-- server assignments
-- DNS records
-- Cloudflare changes
-- Kamal configuration
-- production SSH
-- schema naming
-- CI setup
-- audit setup
-- GHCR setup
-- login/access infrastructure
-
-Those are platform concerns.
+After provisioning, normal development is self-service.
 
 ---
 
 # Overall Architecture
 
 ```text
-                         monkeyOS
-                    generic distribution
-                           │
-                       install once
-                           ▼
-                GITHUB ORGANIZATION
-                           │
-              ┌────────────┴────────────┐
-              │                         │
-       monkeyos-platform          shared platform
-              │                  infrastructure
-      ┌───────┴───────┐                 │
-      │               │          Supabase / Cloudflare
- master workflows   master skills       │
-      │               │            runtime pool
-      │               │
- reusable calls     synchronization
-      │               │
-      └───────┬───────┘
+                           monkeyOS
+                      generic distribution
+                             │
+                         install once
+                             ▼
+                  GITHUB ORGANIZATION
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+       monkeyos-platform             shared services
+              │                             │
+      ┌───────┴────────┐             Supabase Auth
+      │                │             Cloudflare
+ central workflows  central skills   runtime hosts
+      │                │
+ reusable callers    sync
+      │                │
+      └───────┬────────┘
               ▼
-       APPLICATION REPO
+        APPLICATION REPO
               │
-      ┌───────┼───────────────┐
-      │       │               │
- application database     app shell
-   logic      migrations       │
-      │       │          login / access
-      │       │          README / changelog
-      └───────┴───────┬───────┘
-                      │
-             coding-agent harness
-                      │
-                 commit / push
-                      │
-                      ▼
-              central CI workflow
-                      │
-                      ▼
-               immutable GHCR image
-                      │
-                      ▼
-             protected deploy caller
-                      │
-                      ▼
-          central deployment workflow
-                      │
-             GitHub-hosted runner
-                      │
-                    Kamal
-                      │
-               ┌──────┴──────┐
-               ▼             ▼
-            prod-01       prod-02
-               │             │
-               └──────┬──────┘
-                      ▼
-                   Supabase
-
-                      ▲
-                      │
-              Cloudflare wildcard LB
+       ┌──────┼──────────────┐
+       │      │              │
+      code  own schema   app shell
+             │          login / access
+             │          audit
+             │          README / changelog
+             │
+      NO CENTRAL monkeyOS DB
+             │
+             ▼
+          Supabase
+       ┌─────┼──────┐
+       ▼     ▼      ▼
+    finance  hr     ops
+       │
+       ├── members
+       ├── audit_log
+       └── business data
 ```
 
-Application identity and access:
+Deployment:
 
 ```text
-                 Supabase Auth
-                 shared identity
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-     finance.members  hr.members  ops.members
-          │
-          ▼
-      Finance App
-          │
-          ├── RLS authorization
-          ├── Access management
-          └── audit history
+Application repo
+      ↓
+central CI
+      ↓
+immutable GHCR image
+      ↓
+explicit deploy
+      ↓
+central deployment workflow
+      ↓
+GitHub-hosted runner
+      ↓
+Kamal
+      ↓
+┌─────────────┐
+▼             ▼
+prod-01     prod-02
 ```
 
-Data model:
+Identity and authorization:
 
 ```text
-Application's own schema
-        ↓
-own data + membership + audit
+                Supabase Auth
+                shared identity
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+    finance.members hr.members ops.members
 
-Other application schemas
-        ↓
-metadata discovery only
-        ↓
-existing source of truth
-        ↓
-explicit cross-domain contract
+Each application owns its own authorization state.
 ```
 
 ---
@@ -1975,36 +1651,36 @@ explicit cross-domain contract
 
 > **monkeyOS is a portable application platform that can be installed into any GitHub organization.**
 
-> **Application repositories contain application concerns; platform behavior is inherited centrally wherever possible.**
+> **monkeyOS has no central application-state database.**
+
+> **The platform provisions and governs applications, but does not become a runtime data dependency or business-data owner.**
+
+> **State belongs to the system that naturally owns it: application state to applications, identity to Supabase Auth, deployment/configuration state to GitHub and infrastructure services.**
+
+> **There is no central user directory, membership store, business audit store, application registry, deployment-state database, or data catalog owned by monkeyOS.**
 
 > **The repository is the application, and repository identity determines database and deployment identity.**
 
-> **Developer-side coding-agent usage is harness-independent; AI execution inside GitHub Actions uses Pi.**
+> **Application repositories contain application concerns; platform behavior is inherited centrally wherever possible.**
 
-> **Central workflows and centrally synchronized skills allow platform improvements to propagate across applications.**
+> **Authentication is shared; authorization is local to each application.**
 
-> **Every application starts as a secure, governable company application shell rather than an empty software project.**
-
-> **Authentication is shared; application authorization is local.**
-
-> **Every application manages its own membership. No shared user directory is required.**
-
-> **Changes that matter to the business should be traceable.**
-
-> **The application's README is its front door; someone should be able to understand and start the app without hunting through separate documentation.**
-
-> **The changelog describes meaningful changes to the application and is maintained automatically together with application versions.**
-
-> **`main` is source; production is an explicit promotion of an immutable, already-tested artifact.**
+> **Changes that matter to the business are audited by the application that owns them.**
 
 > **Own locally. Discover globally. Share explicitly.**
 
+> **Metadata discovery reflects the real PostgreSQL structure rather than a monkeyOS-maintained copy.**
+
+> **The README is the application's front door, and the changelog/version are maintained as part of the normal development workflow.**
+
+> **Developer-side coding-agent usage is harness-independent; AI execution inside GitHub Actions uses Pi.**
+
+> **`main` is source; production is an explicit promotion of an immutable, already-tested artifact.**
+
 > **A runtime pool is a small HA cell of interchangeable hosts, not an application scheduler.**
 
-> **Scale the small HA cell vertically before introducing sophisticated placement or orchestration.**
+> **Scale vertically before adding placement or orchestration complexity.**
 
-> **Every meaningful change receives code review, security review, and deterministic verification before becoming deployable.**
+> **Every meaningful change receives code review, security review and deterministic verification before becoming deployable.**
 
-> **Security and maintainability are reassessed periodically even when application code has not changed.**
-
-> **Keep monkeyOS deliberately simple until real requirements justify additional platform complexity.**
+> **Keep monkeyOS deliberately simple and avoid creating platform-owned state unless a real, unavoidable requirement emerges.**

@@ -93,6 +93,8 @@ A standard application repository looks approximately like:
 finance/
 ├── README.md
 ├── BUSINESS.md
+├── business/
+│   └── skills/
 ├── CHANGELOG.md
 ├── AGENTS.md
 ├── package.json
@@ -509,7 +511,7 @@ One platform rule is sufficient:
 
 > **monkeyOS-managed files must not be modified as normal application code.**
 
-For any change that affects business behavior, the agent reads and preserves the application's Business Application Contract.
+For any change that affects business behavior, the agent reads `BUSINESS.md` and loads the relevant application-owned business skills before making the change.
 
 ---
 
@@ -529,7 +531,7 @@ It explains:
 - external data dependencies
 - user-level deployment flow
 - current application version
-- where to find the Business Application Contract
+- where to find the Business Application Contract system and domain skills
 
 Getting started should be approximately:
 
@@ -542,50 +544,107 @@ Getting started should be approximately:
 
 Before that, the Platform Team only needs to:
 
-> **Create/provision the GitHub repository and its database schema.**
+> **Create/provision the GitHub repo# 15. Business Application Contract System
 
-Afterwards, normal development is self-service.
+A single business document is not enough for a complex operational application.
 
----
-
-# 15. Business Application Contract
-
-Every application maintains a canonical top-level:
+Every application therefore owns a layered Business Application Contract system:
 
 ```text
 BUSINESS.md
+business/
+└── skills/
+    ├── <business-domain>/
+    │   ├── SKILL.md
+    │   └── references/
+    └── <business-process>/
+        ├── SKILL.md
+        └── references/
 ```
+
+For example:
+
+```text
+BUSINESS.md
+business/
+└── skills/
+    ├── work-order-lifecycle/
+    ├── commissions/
+    ├── inventory-costing/
+    ├── warranty-handoffs/
+    └── customer-data-retention/
+```
+
+These are application-owned business instructions. They are separate from centrally synchronized `.monkeyos/skills/`, which define shared platform and engineering workflows.
+
+## `BUSINESS.md` — Business Front Door
+
+`BUSINESS.md` is the business equivalent of a repository front door and routing layer.
 
 It answers:
 
-> **What business behavior must this application preserve?**
+> **What business does this application support, which rules must it preserve, and where is the detailed domain guidance?**
 
-Business behavior must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
-
-The contract records, as applicable:
+It remains concise and records:
 
 - application purpose, users, scope, and explicit out-of-scope boundaries
-- named business, process, and data owners, including who may decide policy changes
-- key business entities and authoritative identifiers
-- roles, permissions, operational scopes, approvals, and separation of duties
+- named business, process, and data owners, including decision rights
+- shared vocabulary, key entities, and authoritative identifiers
+- application-wide business invariants
+- a routing table describing which business skills apply to which changes
+- the priority of business rules when sources appear to conflict
+- open business decisions and assumptions requiring confirmation
+
+It links to domain-specific business skills rather than duplicating their detailed rules.
+
+## Application Business Skills
+
+Each business skill covers one bounded domain, policy, or operational process.
+
+Its `SKILL.md` defines:
+
+- when the skill must be used
+- purpose, scope, actors, roles, and operational permissions
 - workflows, states, allowed transitions, handoffs, deadlines, and exception paths
-- correction, cancellation, reopening, and terminal-record rules
+- approval, separation-of-duty, correction, cancellation, reopening, and terminal-record rules
 - master/reference-data ownership and change rules
-- business calculations, KPI definitions, rounding rules, and effective dates
+- calculations, KPI definitions, rounding rules, and effective dates
 - record classification, retention, archival, anonymization, audit, and export requirements
-- external systems, source-of-truth boundaries, reconciliation, and failure ownership
+- external-system ownership, source-of-truth boundaries, reconciliation, and failure handling
 - operating constraints such as sites, shared devices, peripherals, languages, time zones, and manual fallback
-- open business decisions and assumptions that still require confirmation
+- acceptance scenarios and references needed to preserve the business behavior
 
-The contract describes business policy and invariants rather than implementation details.
+A skill may keep supporting material in its own `references/` folder so agents load detailed knowledge only when the task requires it.
 
-For a simple application, it may be concise. A complex application may link to additional process diagrams, decision records, or integration contracts, while `BUSINESS.md` remains the canonical index.
+## Agent Behavior
 
-The README links to the contract, and `AGENTS.md` requires agents to read it before changing business behavior.
+For any change that may affect business behavior, the coding agent must:
 
-A meaningful business-behavior change updates the contract, relevant tests, and CHANGELOG in the same change.
+```text
+read BUSINESS.md
+↓
+identify affected business domains/processes
+↓
+load every relevant business skill
+↓
+preserve documented invariants
+↓
+surface contradictions or missing decisions
+↓
+update the contract, tests, and CHANGELOG when behavior changes
+```
 
-> **Every application has a canonical Business Application Contract describing the business rules that its implementation must preserve.**
+Business rules must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
+
+For a simple application, `BUSINESS.md` may be sufficient initially. Business skills are added as soon as a bounded area develops enough rules, exceptions, ownership, or repeated work to benefit from its own context.
+
+The README links to `BUSINESS.md`, and `AGENTS.md` instructs agents to load the relevant business skills before changing business behavior.
+
+> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` routes agents to modular business skills that define the rules the implementation must preserve.**
+
+---
+
+on Contract describing the business rules that its implementation must preserve.**
 
 ---
 
@@ -1107,7 +1166,9 @@ inspect change
 ↓
 classify change
 ↓
-update BUSINESS.md where business behavior changed
+load relevant business skills
+↓
+update BUSINESS.md / business skills where business behavior changed
 ↓
 update CHANGELOG/version where appropriate
 ↓
@@ -1683,6 +1744,7 @@ Every new monkeyOS app starts with:
 ```text
 ✓ README.md
 ✓ BUSINESS.md
+✓ application-owned business skills where needed
 ✓ CHANGELOG.md
 ✓ semantic versioning
 ✓ version + Git SHA identification
@@ -1904,7 +1966,7 @@ fully usable local app
 
 > **Changes that matter to the business are audited by the application that owns them.**
 
-> **Every application has a canonical Business Application Contract describing its purpose, ownership, workflows, permissions, business rules, records obligations, integrations, operational constraints, and open decisions.**
+> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` provides the business map and routing rules, while modular business skills preserve detailed domain and process knowledge.**
 
 > **Own locally. Discover globally. Share explicitly.**
 

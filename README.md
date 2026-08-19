@@ -92,6 +92,7 @@ A standard application repository looks approximately like:
 ```text
 finance/
 ├── README.md
+├── BUSINESS.md
 ├── CHANGELOG.md
 ├── AGENTS.md
 ├── package.json
@@ -508,6 +509,8 @@ One platform rule is sufficient:
 
 > **monkeyOS-managed files must not be modified as normal application code.**
 
+For any change that affects business behavior, the agent reads and preserves the application's Business Application Contract.
+
 ---
 
 # 14. README Is the Application Front Door
@@ -526,6 +529,7 @@ It explains:
 - external data dependencies
 - user-level deployment flow
 - current application version
+- where to find the Business Application Contract
 
 Getting started should be approximately:
 
@@ -544,7 +548,48 @@ Afterwards, normal development is self-service.
 
 ---
 
-# 15. CHANGELOG & Versioning
+# 15. Business Application Contract
+
+Every application maintains a canonical top-level:
+
+```text
+BUSINESS.md
+```
+
+It answers:
+
+> **What business behavior must this application preserve?**
+
+Business behavior must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
+
+The contract records, as applicable:
+
+- application purpose, users, scope, and explicit out-of-scope boundaries
+- named business, process, and data owners, including who may decide policy changes
+- key business entities and authoritative identifiers
+- roles, permissions, operational scopes, approvals, and separation of duties
+- workflows, states, allowed transitions, handoffs, deadlines, and exception paths
+- correction, cancellation, reopening, and terminal-record rules
+- master/reference-data ownership and change rules
+- business calculations, KPI definitions, rounding rules, and effective dates
+- record classification, retention, archival, anonymization, audit, and export requirements
+- external systems, source-of-truth boundaries, reconciliation, and failure ownership
+- operating constraints such as sites, shared devices, peripherals, languages, time zones, and manual fallback
+- open business decisions and assumptions that still require confirmation
+
+The contract describes business policy and invariants rather than implementation details.
+
+For a simple application, it may be concise. A complex application may link to additional process diagrams, decision records, or integration contracts, while `BUSINESS.md` remains the canonical index.
+
+The README links to the contract, and `AGENTS.md` requires agents to read it before changing business behavior.
+
+A meaningful business-behavior change updates the contract, relevant tests, and CHANGELOG in the same change.
+
+> **Every application has a canonical Business Application Contract describing the business rules that its implementation must preserve.**
+
+---
+
+# 16. CHANGELOG & Versioning
 
 Every application contains:
 
@@ -589,7 +634,7 @@ The Git SHA remains the immutable technical deployment identity.
 
 ---
 
-# 16. Authentication & Application Access
+# 17. Authentication & Application Access
 
 Every application starts with working authentication:
 
@@ -652,7 +697,7 @@ Normal browser code cannot browse `auth.users`.
 
 ---
 
-# 17. Authorization Is Enforced by RLS
+# 18. Authorization Is Enforced by RLS
 
 Application access is enforced at the database layer:
 
@@ -671,7 +716,7 @@ Hiding UI elements is never considered sufficient authorization.
 
 ---
 
-# 18. Business Audit Trails
+# 19. Business Audit Trails
 
 Every application owns its own business audit history:
 
@@ -710,7 +755,7 @@ The mechanism should remain simple rather than becoming an event-sourcing framew
 
 ---
 
-# 19. Data Architecture & Governance
+# 20. Data Architecture & Governance
 
 The governing principle is:
 
@@ -777,7 +822,7 @@ Cross-domain writes use explicit operations controlled by the source domain rath
 
 ---
 
-# 20. Supabase & Database Security
+# 21. Supabase & Database Security
 
 One Supabase project represents the shared production environment/trust boundary rather than one application.
 
@@ -827,7 +872,7 @@ No ORM.
 
 ---
 
-# 21. Local Development & Test Data
+# 22. Local Development & Test Data
 
 Local development requires approximately:
 
@@ -915,7 +960,7 @@ Local state is disposable and reproducible.
 
 ---
 
-# 22. `start app`
+# 23. `start app`
 
 The central `start` skill performs approximately:
 
@@ -947,7 +992,7 @@ The result should be a working application immediately.
 
 ---
 
-# 23. Standard Application Stack
+# 24. Standard Application Stack
 
 ```text
 Runtime/package manager  Bun
@@ -993,7 +1038,7 @@ No central monkeyOS UI component framework.
 
 ---
 
-# 24. Engineering & Review Philosophy
+# 25. Engineering & Review Philosophy
 
 The engineering standard is:
 
@@ -1053,7 +1098,7 @@ Security review covers authentication, authorization, RLS, schema boundaries, cr
 
 ---
 
-# 25. `commit`
+# 26. `commit`
 
 The central `commit` skill performs:
 
@@ -1061,6 +1106,8 @@ The central `commit` skill performs:
 inspect change
 ↓
 classify change
+↓
+update BUSINESS.md where business behavior changed
 ↓
 update CHANGELOG/version where appropriate
 ↓
@@ -1093,7 +1140,7 @@ This makes quality review part of the development loop rather than something tha
 
 ---
 
-# 26. Continuous Integration
+# 27. Continuous Integration
 
 Application CI is a thin caller to central monkeyOS CI.
 
@@ -1150,7 +1197,7 @@ deployed unchanged
 
 ---
 
-# 27. GitHub Is the Platform Control Plane
+# 28. GitHub Is the Platform Control Plane
 
 GitHub owns the state it is already good at:
 
@@ -1171,7 +1218,7 @@ monkeyOS does not mirror this information into another database.
 
 ---
 
-# 28. Infrastructure Provisioning with Terraform
+# 29. Infrastructure Provisioning with Terraform
 
 All infrastructure provisioning is contained in the organization-level:
 
@@ -1412,7 +1459,7 @@ Vertical scaling remains the default V1 strategy.
 
 ---
 
-# 29. Runtime Architecture
+# 30. Runtime Architecture
 
 The runtime pool is a **small HA cell**, not an application scheduler:
 
@@ -1452,7 +1499,7 @@ routing database
 
 ---
 
-# 30. Cloudflare Front Door
+# 31. Cloudflare Front Door
 
 One wildcard Cloudflare Load Balancer fronts the pool:
 
@@ -1472,7 +1519,7 @@ Because every standard app exists on both hosts, there is no normal need for per
 
 ---
 
-# 31. Production Deployment
+# 32. Production Deployment
 
 Deployment is:
 
@@ -1522,7 +1569,7 @@ The central platform derives everything else.
 
 ---
 
-# 32. Deployment Security
+# 33. Deployment Security
 
 Authorization and execution are separate:
 
@@ -1571,7 +1618,7 @@ arbitrary Docker flags
 
 ---
 
-# 33. Secrets & Configuration
+# 34. Secrets & Configuration
 
 Platform configuration uses the systems that naturally own it.
 
@@ -1597,7 +1644,7 @@ Secrets are never printed back to users or coding agents.
 
 ---
 
-# 34. Continuous Repository Security
+# 35. Continuous Repository Security
 
 Security operates at two levels:
 
@@ -1629,12 +1676,13 @@ The objective is to find material problems, not create style-only churn.
 
 ---
 
-# 35. Standard Application Scaffold Guarantee
+# 36. Standard Application Scaffold Guarantee
 
 Every new monkeyOS app starts with:
 
 ```text
 ✓ README.md
+✓ BUSINESS.md
 ✓ CHANGELOG.md
 ✓ semantic versioning
 ✓ version + Git SHA identification
@@ -1688,7 +1736,7 @@ production data for development
 
 ---
 
-# 36. Organization Platform Guarantee
+# 37. Organization Platform Guarantee
 
 A monkeyOS organization installation provides:
 
@@ -1719,7 +1767,7 @@ A monkeyOS organization installation provides:
 
 ---
 
-# 37. New Application Provisioning
+# 38. New Application Provisioning
 
 Once the organization platform exists:
 
@@ -1855,6 +1903,8 @@ fully usable local app
 > **Authentication is shared; application authorization is local and enforced by RLS.**
 
 > **Changes that matter to the business are audited by the application that owns them.**
+
+> **Every application has a canonical Business Application Contract describing its purpose, ownership, workflows, permissions, business rules, records obligations, integrations, operational constraints, and open decisions.**
 
 > **Own locally. Discover globally. Share explicitly.**
 

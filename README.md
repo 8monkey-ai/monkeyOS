@@ -1,4 +1,4 @@
-# Infinite Monkey Application Platform — Architecture & Operating Model
+# Infinite Monkey Application Platform
 
 ## 1. Objective
 
@@ -12,7 +12,14 @@ The intended user experience is simple:
 
 Users should not need to understand GitHub Actions, branches, Kamal, cloud networking, Supabase administration, container infrastructure, or deployment configuration.
 
-The platform is **cloud-agnostic**. Azure, AWS, GCP, Hetzner, bare metal, or other infrastructure providers are implementation choices underneath the platform rather than part of the application architecture.
+The platform is **cloud-agnostic for compute**. Applications may run on Azure, AWS, GCP, Hetzner, bare metal, or other Docker-capable infrastructure without changing the application-development model.
+
+Some platform services are intentionally standardized across all infrastructure providers:
+
+- **GitHub** for source, CI/CD, secrets and container registry
+- **Cloudflare** for DNS, CDN and edge/TLS
+- **Supabase** for Postgres and Auth
+- **Kamal** for application deployment
 
 ---
 
@@ -23,13 +30,11 @@ The platform is **cloud-agnostic**. Azure, AWS, GCP, Hetzner, bare metal, or oth
 A new application should require only:
 
 1. a GitHub repository created from the standard scaffold
-2. app-scoped database/developer access where required
+2. an app-specific Supabase schema / developer role where required
 3. production secrets
 4. repository access for the user
 
 No per-application infrastructure registration should be required.
-
----
 
 ## Convention over configuration
 
@@ -55,8 +60,6 @@ The default application requires no infrastructure configuration file.
 
 Exceptions may later be expressed through optional application-local configuration.
 
----
-
 ## GitHub `main` is source, not production
 
 A commit to `main` does not automatically deploy.
@@ -69,8 +72,6 @@ production = explicitly promoted version
 Business users may commit directly to `main`.
 
 Developers may use branches when useful, but branches are a collaboration mechanism rather than a deployment requirement.
-
----
 
 ## Automated quality gates instead of mandatory code review
 
@@ -90,8 +91,6 @@ explicit production deployment
 
 Automated checks provide the primary release gate.
 
----
-
 ## Infrastructure is provisioned per environment, not per application
 
 Individual small applications should not require dedicated infrastructure.
@@ -101,14 +100,12 @@ Instead, applications run as isolated containers on shared runtime pools.
 ```text
 Environment
 ├── deployment runner
-├── runtime pool
-├── container registry
-├── ingress
-├── secrets
+├── application hosts
+├── networking
 └── observability
 ```
 
----
+GitHub, Cloudflare and Supabase provide the shared platform services around those runtime hosts.
 
 ## Standardize decisions and workflows, not application code
 
@@ -157,13 +154,285 @@ The user should normally never need to interact directly with:
 - GitHub Actions
 - cloud consoles
 - Supabase administration
+- Cloudflare
 - Kamal
 - Docker
 - production hosts
 
 ---
 
-# 4. Application Lifecycle
+# 4. Local Machine Requirements
+
+Self-service should require only a small, standardized local toolchain.
+
+The objective is:
+
+> **Install the local platform prerequisites once; after that, application work happens through the coding agent.**
+
+## Required Tools
+
+### 1. Codex or Claude Code
+
+One AI coding agent is required as the primary interface to the platform.
+
+The agent is responsible for:
+
+- editing code
+- starting the application
+- managing local Supabase
+- running tests
+- formatting/linting
+- committing
+- pushing
+- triggering deployment
+
+VS Code or Zed are optional interfaces for users who want to inspect or edit code directly.
+
+### 2. Git
+
+Git is required locally because application state is stored in a GitHub repository.
+
+The user should not normally need to operate Git manually.
+
+The agent handles actions such as:
+
+```text
+git status
+git add
+git commit
+git push
+```
+
+The user-facing abstraction remains:
+
+```text
+commit code
+```
+
+### 3. GitHub CLI (`gh`)
+
+GitHub CLI is required for agent-driven GitHub operations.
+
+It allows the agent to:
+
+- authenticate the user
+- inspect the current repository
+- interact with Actions
+- trigger deployment workflows
+- inspect deployment runs
+- manage GitHub secrets where permitted
+
+Initial setup should generally be:
+
+```text
+gh auth login
+```
+
+using the user's normal GitHub identity.
+
+### 4. Bun
+
+Bun is the only supported JavaScript/TypeScript runtime and package manager.
+
+It provides:
+
+- JavaScript/TypeScript runtime
+- package management
+- package scripts
+- test runner
+- dependency installation
+
+The project should use:
+
+```text
+bun install
+bun run ...
+bun test
+bunx ...
+```
+
+and should not use:
+
+```text
+node
+npm
+npx
+pnpm
+yarn
+```
+
+### 5. Supabase CLI
+
+The Supabase CLI is required for the local development environment.
+
+It provides:
+
+- local Supabase startup/shutdown
+- local Postgres
+- local Auth
+- local Data API
+- migrations
+- schema resets
+- TypeScript type generation
+- local database testing
+
+The CLI should preferably be pinned as a project dependency and invoked through Bun so every project uses a predictable version.
+
+Typical commands used by the agent include:
+
+```text
+bunx supabase start
+bunx supabase stop
+bunx supabase db reset
+bunx supabase migration ...
+bunx supabase gen types ...
+```
+
+The business user should not normally need to run these manually.
+
+### 6. Docker-Compatible Container Runtime
+
+A Docker-compatible container runtime is required because the Supabase local stack runs as containers.
+
+Recommended defaults:
+
+```text
+macOS:
+- OrbStack or Docker Desktop
+
+Windows:
+- Docker Desktop
+
+Linux:
+- Docker Engine / Docker Desktop
+```
+
+The container runtime should simply be running in the background. The user should not normally interact with it.
+
+## Not Required Locally
+
+A normal application developer or business user does **not** need:
+
+```text
+Kamal
+cloud CLI
+production SSH keys
+production database credentials
+Cloudflare CLI
+GitHub Actions runner
+container registry credentials
+```
+
+Those belong to the platform/deployment environment.
+
+In particular, **Kamal runs on the deployment runner**, not the user's machine.
+
+## Recommended One-Time Workstation Setup
+
+Conceptually:
+
+```text
+Coding agent
+Git
+GitHub CLI
+Bun
+Supabase CLI
+Docker-compatible runtime
+```
+
+Optional:
+
+```text
+VS Code
+Zed
+```
+
+After installation, the user authenticates GitHub once:
+
+```text
+gh auth login
+```
+
+and receives access to the appropriate GitHub repository.
+
+No production infrastructure credential should normally be installed locally.
+
+## Self-Service Bootstrap Experience
+
+Opening a newly scaffolded repository for the first time should require as little user intervention as possible.
+
+The user should be able to say:
+
+```text
+start app
+```
+
+The agent then performs roughly:
+
+```text
+check required tools
+↓
+bun install
+↓
+verify container runtime is running
+↓
+bunx supabase start
+↓
+apply local migrations
+↓
+load seed data
+↓
+generate DB types if required
+↓
+start Vite/Bun development server
+↓
+report local URL
+```
+
+Example experience:
+
+```text
+User:
+start app
+
+Agent:
+✓ Dependencies installed
+✓ Local Supabase running
+✓ Database migrations applied
+✓ Development data loaded
+✓ Application running
+
+http://localhost:5173
+```
+
+The business user should not need to know which commands were executed.
+
+## Local Environment Validation
+
+The agent skill should include a workstation health check.
+
+For example:
+
+```text
+check environment
+```
+
+verifies:
+
+```text
+✓ Git installed
+✓ GitHub authenticated
+✓ Bun installed
+✓ container runtime running
+✓ Supabase CLI available
+✓ repository access confirmed
+```
+
+If something is missing, the agent should provide the smallest possible remediation rather than asking the user to debug the platform themselves.
+
+---
+
+# 5. Application Lifecycle
 
 ## Local development
 
@@ -184,8 +453,6 @@ Local development therefore requires no production database credentials.
 
 Local data and Auth users are disposable.
 
----
-
 ## Commit
 
 The user says:
@@ -204,8 +471,6 @@ The agent:
 6. runs required additional checks
 7. commits
 8. pushes to GitHub
-
----
 
 ## Continuous Integration
 
@@ -229,13 +494,19 @@ production build
 Playwright critical flows
 ↓
 build immutable container image
+↓
+push image to GHCR
 ```
 
 A successful commit produces an immutable container image identified by the Git SHA.
 
-No production deployment occurs automatically.
+Example:
 
----
+```text
+ghcr.io/company/damaged-stock:<git-sha>
+```
+
+No production deployment occurs automatically.
 
 ## Production deployment
 
@@ -250,7 +521,7 @@ The agent:
 1. identifies the current repository
 2. identifies the intended Git SHA
 3. confirms CI passed
-4. triggers the platform deployment workflow
+4. triggers the GitHub deployment workflow
 5. follows deployment status
 6. reports success or failure
 
@@ -274,7 +545,7 @@ Application Runtime
 
 ---
 
-# 5. Zero Application Registration
+# 6. Zero Application Registration
 
 There is no separate application registry.
 
@@ -302,18 +573,15 @@ There is no need to manually:
 Operational state can be determined from:
 
 - Git
-- CI status
-- container registry
-- running containers
-- GitHub deployment history
+- GitHub Actions / deployments
+- GHCR
+- Kamal / running containers
 
 ---
 
-# 6. Cloud-Agnostic Platform Architecture
+# 7. Platform Architecture
 
-The Infinite Monkey Application Platform defines generic platform capabilities.
-
-It does **not** depend architecturally on Azure, AWS or GCP.
+The platform intentionally standardizes several shared services rather than abstracting every infrastructure provider.
 
 ```text
 Infinite Monkey Application Platform
@@ -326,48 +594,62 @@ Application Layer
 ├── tests
 └── container image
 
-Platform Layer
-├── CI
-├── deployment orchestration
-├── deployment runner
-├── container registry
-├── secret management
-├── runtime pools
-├── ingress / DNS
-├── observability
-└── environment conventions
+Shared Platform Services
+├── GitHub
+│   ├── source control
+│   ├── CI/CD
+│   ├── production secrets
+│   └── GHCR
+│
+├── Cloudflare
+│   ├── DNS
+│   ├── CDN
+│   └── TLS / edge
+│
+├── Supabase
+│   ├── Postgres
+│   └── Auth
+│
+└── Kamal
+    └── deployment orchestration
 
-Infrastructure Layer
+Runtime Infrastructure
 ├── Azure
 ├── AWS
 ├── GCP
 ├── Hetzner
 ├── bare metal
-└── other infrastructure
+└── other Docker-capable hosts
 ```
 
-The cloud provider merely supplies infrastructure primitives.
+The variable infrastructure layer is therefore primarily **compute and networking**.
 
 ---
 
-# 7. Cloud Provider Abstraction
+# 8. Cloud-Agnostic Runtime
 
-Typical mappings are:
+Applications should not care which cloud provides their runtime hosts.
+
+Typical mappings:
 
 | Platform capability | Azure | AWS | GCP | Generic |
 |---|---|---|---|---|
 | Compute | VM / VMSS | EC2 | Compute Engine | Linux host |
-| Container registry | ACR | ECR | Artifact Registry | Docker registry |
-| Secrets | Key Vault | Secrets Manager | Secret Manager | Vault / GitHub |
-| Identity | Managed Identity | IAM Role | Service Account | OIDC / credentials |
 | Networking | VNet | VPC | VPC | private network |
-| DNS | Azure DNS | Route 53 | Cloud DNS | any DNS provider |
+| Deployment runner | VM / runner host | EC2 / runner host | VM / runner host | Linux host |
 
-Applications should not know which implementation is used.
+The following remain standardized regardless of cloud:
+
+```text
+Source / CI / secrets / registry → GitHub
+DNS / CDN / TLS                 → Cloudflare
+Database / Auth                 → Supabase
+Deployment                      → Kamal
+```
 
 ---
 
-# 8. Runtime Infrastructure
+# 9. Runtime Infrastructure
 
 A typical environment contains:
 
@@ -381,12 +663,8 @@ Environment
 │   ├── app-host-02
 │   └── ...
 │
-├── container registry
-├── ingress / reverse proxy
-├── wildcard DNS
-├── secret mechanism
-├── logging / monitoring
-└── networking
+├── networking
+└── observability
 ```
 
 Applications run as Docker containers on the shared runtime pool.
@@ -406,7 +684,7 @@ Small applications are not independent infrastructure workloads.
 
 The **Application Platform environment** is the workload.
 
-Additional pools can later provide stronger isolation:
+Additional runtime pools can later provide stronger isolation:
 
 ```text
 internal apps
@@ -417,7 +695,53 @@ high-resource apps
 
 ---
 
-# 9. Kamal Deployment Model
+# 10. GitHub as the Platform Control Plane
+
+GitHub provides:
+
+```text
+source code
+CI
+deployment workflows
+production environment secrets
+container registry
+deployment history
+```
+
+This avoids separate systems for:
+
+- container registry
+- application secret storage
+- deployment metadata
+
+Each application repository can own its production secrets while shared values can be provided at organization level.
+
+---
+
+# 11. Container Registry
+
+All application images are stored in **GitHub Container Registry (GHCR)**.
+
+Example:
+
+```text
+ghcr.io/company/damaged-stock:8a921cf
+```
+
+Images should be:
+
+- immutable
+- identified by Git SHA
+- built once in CI
+- promoted without rebuilding
+
+The same image that passes CI should be deployed to production.
+
+No cloud-specific container registry is required.
+
+---
+
+# 12. Kamal Deployment Model
 
 Kamal is the standard deployment mechanism.
 
@@ -429,6 +753,8 @@ GitHub Deployment Workflow
 Deployment Runner
         ↓
 generate Kamal configuration
+        ↓
+load GitHub production secrets
         ↓
 kamal deploy
         ↓
@@ -442,7 +768,7 @@ It is not stored in each application repository.
 The deployment logic derives:
 
 - application identity
-- container image
+- GHCR image
 - target runtime pool
 - hostname
 - health endpoint
@@ -451,11 +777,15 @@ The deployment logic derives:
 
 from conventions and platform defaults.
 
-Because Kamal primarily requires Docker-capable Linux hosts reachable through SSH/networking, the runtime remains portable between cloud providers.
+Because Kamal primarily requires Docker-capable Linux hosts reachable by the deployment runner, the runtime remains portable between cloud providers.
 
 ---
 
-# 10. Secrets
+# 13. Secrets
+
+There is no separate platform secret-store abstraction.
+
+GitHub provides application secrets.
 
 ## Shared secrets
 
@@ -468,8 +798,6 @@ SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 shared telemetry credentials
 ```
-
----
 
 ## App-specific production secrets
 
@@ -487,11 +815,29 @@ other external API credentials
 
 No repository variables are required for the standard application.
 
----
+## Deployment
+
+During deployment:
+
+```text
+GitHub production secrets
+        ↓
+Deployment Workflow
+        ↓
+Deployment Runner
+        ↓
+Kamal
+        ↓
+application container environment
+```
+
+Secrets should never be committed to the repo.
+
+They should not be printed back to the user.
 
 ## User experience
 
-Business users should not manually manage secret infrastructure.
+Business users should not manually manage secrets through the GitHub UI.
 
 The agent can provide operations such as:
 
@@ -501,25 +847,57 @@ replace secret
 list configured secrets
 ```
 
-Secret values should never be printed back after being stored.
-
 ---
 
-## Cloud authentication
+# 14. Cloudflare DNS and CDN
 
-Infrastructure access should preferentially use short-lived or workload identity mechanisms such as:
+Cloudflare is the standard edge layer across all runtime providers.
+
+It provides:
+
+- DNS
+- CDN
+- TLS
+- edge protection
+- consistent public application routing
+
+The platform should use wildcard DNS wherever possible.
+
+Example:
 
 ```text
-GitHub OIDC
-→ cloud identity
-→ required infrastructure permissions
+*.apps.company.com
 ```
 
-rather than long-lived cloud credentials stored in repositories.
+A repository:
+
+```text
+damaged-stock
+```
+
+therefore maps automatically to:
+
+```text
+damaged-stock.apps.company.com
+```
+
+No per-application DNS setup is required.
+
+Cloudflare remains unchanged even if the runtime moves between:
+
+```text
+Azure
+AWS
+GCP
+Hetzner
+other infrastructure
+```
+
+Only the wildcard origin/runtime routing needs to point at the appropriate application ingress.
 
 ---
 
-# 11. Supabase Architecture
+# 15. Supabase Architecture
 
 Supabase is the standard database and Auth platform.
 
@@ -544,7 +922,7 @@ A user therefore registers once and can use multiple applications.
 
 ---
 
-# 12. Developer Access vs Application User Access
+# 16. Developer Access vs Application User Access
 
 These are separate security models.
 
@@ -577,8 +955,6 @@ postgres
 project-owner credentials
 service_role
 ```
-
----
 
 ## Application User Access
 
@@ -616,7 +992,7 @@ authorization  → application-specific
 
 ---
 
-# 13. Database Security Defaults
+# 17. Database Security Defaults
 
 Recommended Supabase defaults:
 
@@ -640,7 +1016,7 @@ There is no ORM.
 
 ---
 
-# 14. Standard Technology Stack
+# 18. Standard Technology Stack
 
 ## Runtime
 
@@ -656,23 +1032,12 @@ Do not use:
 - yarn
 - npx
 
-Bun is used for:
-
-- package management
-- scripts
-- tests
-- runtime where applicable
-
----
-
 ## Language
 
 ```text
 TypeScript
 strict mode
 ```
-
----
 
 ## Frontend
 
@@ -687,8 +1052,6 @@ React Router is the standard framework.
 
 Next.js is not part of the default stack.
 
----
-
 ## UI
 
 ```text
@@ -701,16 +1064,12 @@ No additional UI framework should be introduced without a strong reason.
 
 No central Infinite Monkey component library is required initially.
 
----
-
 ## Forms and Validation
 
 ```text
 React Hook Form
 Zod
 ```
-
----
 
 ## Server State
 
@@ -723,8 +1082,6 @@ Rules:
 - server state belongs in TanStack Query
 - do not use `useEffect` for normal data fetching
 - mutations should invalidate/update queries properly
-
----
 
 ## Client State
 
@@ -743,23 +1100,17 @@ Rules:
 
 Zustand must not become a generic application data store.
 
----
-
 ## Tables
 
 ```text
 TanStack Table
 ```
 
----
-
 ## Charts
 
 ```text
 Recharts v3
 ```
-
----
 
 ## Database
 
@@ -772,7 +1123,7 @@ No ORM
 
 ---
 
-# 15. Code Quality
+# 19. Code Quality
 
 Formatting:
 
@@ -809,7 +1160,7 @@ Critical flows additionally run Playwright.
 
 ---
 
-# 16. Testing Strategy
+# 20. Testing Strategy
 
 ## Unit tests
 
@@ -822,8 +1173,6 @@ Use Bun test for:
 
 Focus on important behavior rather than arbitrary coverage percentages.
 
----
-
 ## Database tests
 
 Test:
@@ -834,8 +1183,6 @@ Test:
 - permissions
 - constraints
 - schema assumptions
-
----
 
 ## End-to-End tests
 
@@ -857,7 +1204,7 @@ Because mandatory human review is minimized, UI and integration testing are espe
 
 ---
 
-# 17. Mobile-First Requirement
+# 21. Mobile-First Requirement
 
 Every application must work well on:
 
@@ -881,7 +1228,7 @@ Playwright should test representative mobile and desktop viewports.
 
 ---
 
-# 18. Scaffold, AGENTS.md and Skills
+# 22. Scaffold, AGENTS.md and Skills
 
 Consistency comes from three mechanisms.
 
@@ -909,8 +1256,6 @@ AGENTS.md
 
 The approved dependencies are already installed.
 
----
-
 ## AGENTS.md
 
 `AGENTS.md` contains application-development rules.
@@ -933,8 +1278,6 @@ Examples:
 
 `AGENTS.md` defines **how code should be written**.
 
----
-
 ## Skills
 
 Skills define operational workflows.
@@ -950,15 +1293,16 @@ deploy
 rollback
 add secret
 database migration
+check environment
 ```
 
 Skills define **how the platform should be operated**.
 
 ---
 
-# 19. Infrastructure Portability
+# 23. Infrastructure Portability
 
-An application must not care whether production runs on:
+An application must not care whether production compute runs on:
 
 ```text
 Azure
@@ -969,10 +1313,12 @@ private cloud
 bare metal
 ```
 
-The application contract is simply:
+The application contract is:
 
 ```text
-Docker image
+GitHub repository
++
+GHCR container image
 +
 runtime environment variables
 +
@@ -981,13 +1327,22 @@ network endpoint
 Supabase
 ```
 
-Infrastructure-provider-specific configuration belongs below the platform abstraction.
+Cloud-provider-specific configuration belongs below the platform boundary.
 
-This allows environments to move between providers without changing application repositories or the developer workflow.
+The standard platform services remain fixed:
+
+```text
+GitHub     → source, CI, secrets, GHCR
+Cloudflare → DNS, CDN, TLS
+Supabase   → database, Auth
+Kamal      → deployment
+```
+
+This keeps the application-development model consistent even when infrastructure providers differ.
 
 ---
 
-# 20. Future: Staging
+# 24. Future: Staging
 
 Staging is intentionally deferred from V1.
 
@@ -1019,68 +1374,80 @@ Production-like staging data should be anonymized/sanitized before being made av
 
 ---
 
-# 21. Overall Architecture
+# 25. Overall Architecture
 
 ```text
-                  BUSINESS USER / DEVELOPER
-                            │
-                     Codex / Claude
-                            │
-                       Agent Skills
-                            │
-                            ▼
-                     GitHub App Repo
-                            │
-                       commit / push
-                            │
-                            ▼
-                        CI / Tests
-                            │
-                  immutable container image
-                            │
-                            ▼
-                    Container Registry
-                            │
-                  "deploy production"
-                            │
-                            ▼
-                  Deployment Workflow
-                            │
-                            ▼
-                   Deployment Runner
-                            │
-                          Kamal
-                            │
-                            ▼
-                Shared Application Runtime
-                            │
-                            ▼
-                  Application Container
-                            │
-                            ▼
-                     Supabase
-              ┌─────────────┴─────────────┐
-              │                           │
-         Shared Auth               App Schema
-                                     + RLS
+                 BUSINESS USER / DEVELOPER
+                           │
+                    Codex / Claude
+                           │
+                      Agent Skills
+                           │
+                           ▼
+                    GitHub App Repo
+                           │
+                      commit / push
+                           │
+                           ▼
+                       GitHub CI
+                           │
+                 immutable container image
+                           │
+                           ▼
+                          GHCR
+                           │
+                 "deploy production"
+                           │
+                           ▼
+                GitHub Deployment Workflow
+                           │
+                           ▼
+                  Deployment Runner
+                           │
+                         Kamal
+                           │
+                           ▼
+               Shared Application Runtime
+            Azure / AWS / GCP / Other
+                           │
+                           ▼
+                 Application Container
+                           │
+                           ▼
+                       Supabase
+              ┌────────────┴────────────┐
+              │                         │
+         Shared Auth              App Schema
+                                    + RLS
 
-
-                 Infrastructure Backend
-
-          Azure / AWS / GCP / Other
+                           ▲
+                           │
+                     Cloudflare
+                 DNS / CDN / TLS
 ```
 
 ---
 
-# 22. V1 Definition
+# 26. V1 Definition
 
 A new application should require approximately:
 
 ```text
 1. Create GitHub repo from scaffold
 2. Create application-specific Supabase schema / developer role
-3. Configure production secrets
+3. Configure production environment secrets
 4. Give the user repository access
+```
+
+The developer/business user's machine needs only the standard workstation setup:
+
+```text
+Codex or Claude Code
+Git
+GitHub CLI
+Bun
+Supabase CLI
+Docker-compatible container runtime
 ```
 
 After that, the normal user workflow is:
@@ -1097,15 +1464,19 @@ There should be no application-specific:
 - infrastructure registration
 - runtime provisioning
 - DNS setup
-- deployment configuration
+- Kamal configuration
+- container registry setup
 - cloud-console work
+- production infrastructure credentials on the user's workstation
 
 ---
 
-# Guiding Principle
+# Guiding Principles
 
-> **The Infinite Monkey Application Platform defines the application contract, development conventions and deployment experience. Infrastructure providers are interchangeable execution backends.**
-
-And:
+> **The Infinite Monkey Application Platform standardizes GitHub, Cloudflare, Supabase and Kamal while keeping the underlying compute infrastructure interchangeable.**
 
 > **Standardize the platform, conventions and agent behavior — not every application's implementation.**
+
+> **The repository is the application. Everything else should be derived automatically wherever possible.**
+
+> **The workstation should contain development tools, not production infrastructure credentials.**

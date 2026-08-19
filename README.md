@@ -95,6 +95,8 @@ finance/
 ├── BUSINESS.md
 ├── business/
 │   └── skills/
+│       └── <process-or-module>/
+│           └── SKILL.md
 ├── CHANGELOG.md
 ├── AGENTS.md
 ├── package.json
@@ -585,7 +587,7 @@ These are application-owned business instructions. They are separate from centra
 
 ## `BUSINESS.md` — Business Front Door
 
-`BUSINESS.md` is the business equivalent of a repository front door and routing layer.
+`BUSINESS.md` contains the application's overall business purpose and acts as the routing layer for its detailed business skills. It is not a detailed process specification.
 
 It answers:
 
@@ -597,15 +599,16 @@ It remains concise and records:
 - named business, process, and data owners, including decision rights
 - shared vocabulary, key entities, and authoritative identifiers
 - application-wide business invariants
+- an index of every business process and module, linked to its business skill
 - a routing table describing which business skills apply to which changes
 - the priority of business rules when sources appear to conflict
-- open business decisions and assumptions requiring confirmation
+- application-level open decisions and assumptions requiring confirmation
 
-It links to domain-specific business skills rather than duplicating their detailed rules.
+Detailed workflows, permissions, calculations, record rules, integrations, and exceptions do not belong in `BUSINESS.md`. They live in the relevant process or module skill.
 
 ## Application Business Skills
 
-Each business skill covers one bounded domain, policy, or operational process.
+Every business process or module has its own skill from the beginning. Each skill covers one bounded capability, policy, or operational process.
 
 Its `SKILL.md` defines:
 
@@ -642,11 +645,11 @@ update the contract, tests, and CHANGELOG when behavior changes
 
 Business rules must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
 
-For a simple application, `BUSINESS.md` may be sufficient initially. Business skills are added as soon as a bounded area develops enough rules, exceptions, ownership, or repeated work to benefit from its own context.
+An application never relies on `BUSINESS.md` alone for process knowledge. Even a simple application starts with at least one business skill covering its initial process or module. New processes and modules receive their own skills when they are introduced.
 
 The README links to `BUSINESS.md`, and `AGENTS.md` instructs agents to load the relevant business skills before changing business behavior.
 
-> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` routes agents to modular business skills that define the rules the implementation must preserve.**
+> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` states the overall purpose and routes agents, while every business process or module has its own skill from the beginning.**
 
 ---
 
@@ -1746,7 +1749,7 @@ Every new monkeyOS app starts with:
 ```text
 ✓ README.md
 ✓ BUSINESS.md
-✓ application-owned business skills where needed
+✓ application-owned business skill for every process or module
 ✓ CHANGELOG.md
 ✓ semantic versioning
 ✓ version + Git SHA identification
@@ -1968,7 +1971,7 @@ fully usable local app
 
 > **Changes that matter to the business are audited by the application that owns them.**
 
-> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` provides the business map and routing rules, while modular business skills preserve detailed domain and process knowledge.**
+> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` contains the overall purpose and business map, while every process or module is defined in its own business skill from the beginning.**
 
 > **Own locally. Discover globally. Share explicitly.**
 

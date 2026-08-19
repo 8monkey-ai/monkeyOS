@@ -544,7 +544,13 @@ Getting started should be approximately:
 
 Before that, the Platform Team only needs to:
 
-> **Create/provision the GitHub repo# 15. Business Application Contract System
+> **Create/provision the GitHub repository and its database schema.**
+
+Afterwards, normal development is self-service.
+
+---
+
+# 15. Business Application Contract System
 
 A single business document is not enough for a complex operational application.
 

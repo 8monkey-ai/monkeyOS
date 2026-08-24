@@ -481,7 +481,7 @@ The mechanism remains deliberately simple: centrally managed plain files synchro
 It contains enforceable application-relevant rules:
 
 - required Bun, TypeScript, React, Supabase, and test stack
-- shadcn-first standard component and shell composition
+- official `shadcn@latest` CLI initialization and registry-generated standard component/shell composition
 - SOLID-but-simple engineering standards
 - server, local, shared-client, and URL state ownership
 - business-contract loading and update rules
@@ -1257,9 +1257,9 @@ No routine server-data fetching through `useEffect`.
 
 Avoid unnecessary manual memoization under React Compiler.
 
-Every app starts with `components.json`, app-owned shadcn primitives in `src/components/ui/`, and an application shell composed from the shadcn Sidebar pattern. Agents use `shadcn@latest` to add standard components before inventing a custom primitive, then adapt the generated source in place while preserving accessibility, responsive behavior, slots, and theme tokens.
+Every app initializes `components.json` through the official `shadcn@latest init` CLI with the Base UI preset. Standard primitives and the application shell—including Sidebar, Button, Card, Dialog, Input, Select, Table, and Textarea—are installed or refreshed through `shadcn@latest add`; agents do not hand-write lookalikes for components available in the official registry. Generated registry source lives in `src/components/ui/`, while application composition lives outside that folder. Intentional generated-source adaptations must preserve accessibility, responsive behavior, slots, and theme tokens.
 
-There is no central monkeyOS UI component framework and no parallel application-level primitive system competing with shadcn.
+There is no central monkeyOS UI component framework and no parallel application-level primitive system competing with shadcn. Repository audits verify the official preset, CLI entry point, required generated registry files, and shell composition.
 
 ---
 
@@ -1938,8 +1938,9 @@ Every new monkeyOS app starts with:
 ✓ secure add-secret flow
 ✓ production credentials isolated in GitHub environments
 
-✓ components.json + shadcn-first standard components
-✓ responsive shadcn Sidebar application shell
+✓ components.json initialized by the official shadcn CLI with the Base UI preset
+✓ official CLI-generated shadcn standard components
+✓ responsive application shell composed from the CLI-generated shadcn Sidebar
 ✓ latest stable Bun + compatible dependency maintenance
 ✓ tests
 ✓ code-review loop
@@ -2185,7 +2186,7 @@ Data architecture:
 
 > **Developer-side coding agents are interchangeable; AI inside GitHub Actions uses the latest Pi with an explicitly configured provider, model, and protected credential.**
 
-> **shadcn/ui is the primary application component system, including the shell; standard components are added and adapted in place rather than recreated in a parallel library.**
+> **shadcn/ui is the primary application component system, including the shell. Initialize and add official Base UI registry components through `shadcn@latest`; do not hand-write approximations of available registry components.**
 
 > **CI and containers use the latest stable Bun, compatible dependency and action releases are maintained automatically through semantic ranges and Dependabot, and deployment always promotes the exact tested architecture-matched artifact.**
 

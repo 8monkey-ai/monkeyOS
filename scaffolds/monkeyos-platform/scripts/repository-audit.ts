@@ -145,9 +145,29 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     }
   }
   const agents = await readFile(join(root, "AGENTS.md"), "utf8");
-  for (const principle of ["shadcn/ui", "BUSINESS.md", "RLS", "Bun.secrets", "Dependabot"]) {
+  for (const principle of [
+    "shadcn/ui",
+    "BUSINESS.md",
+    "TanStack Query",
+    "stable query keys",
+    "Pages and visual components",
+    "RLS",
+    "Bun.secrets",
+    "Dependabot",
+  ]) {
     if (!agents.includes(principle)) {
       findings.push({ level: "BLOCKING", message: `AGENTS.md does not enforce ${principle}` });
+    }
+  }
+  for (const file of files.filter((file) =>
+    /^(?:src\/pages|src\/components)\/.*\.tsx$/.test(file),
+  )) {
+    const source = await readFile(join(root, file), "utf8");
+    if (/\.(?:from|rpc)\s*\(/.test(source)) {
+      findings.push({
+        level: "BLOCKING",
+        message: `${file} accesses Supabase data directly; use a typed TanStack Query hook`,
+      });
     }
   }
   for (const workflow of ["ci.yml", "deploy.yml", "audit.yml"]) {

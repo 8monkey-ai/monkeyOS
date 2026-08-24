@@ -1,6 +1,6 @@
 # monkeyOS application starter
 
-Version **1.3.0**. This neutral starter demonstrates a small work-item process with login, protected routes, CRUD, role-managed access, and an app-local audit trail. Repository provisioning replaces the starter identity with the target repository-derived schema, roles, image, hostname, and Bun secret namespace.
+Version **2.0.0**. This clean application foundation starts with login, protected routes, role-managed app-local access, and an audit trail, but deliberately invents no placeholder business domain, table, record, or workflow. Repository provisioning replaces the starter identity with the target repository-derived schema, roles, image, hostname, and Bun secret namespace.
 
 ## Start
 
@@ -23,9 +23,9 @@ Supabase Auth owns identity. This app's `monkeyos_app_template.members` table ow
 
 ## Data ownership
 
-The application owns its Supabase schema, migrations, members, audit log, and work items. Local reset uses deterministic synthetic data and never depends on production data. It neither queries nor writes a monkeyOS platform database because no such state service exists.
+The application owns its Supabase schema, migrations, members, audit log, and future business state. Local reset starts with deterministic synthetic Auth users and memberships and never depends on production data. Add synthetic business records only after a real process/module is defined; the scaffold contains no placeholder business state. It neither queries nor writes a monkeyOS platform database because no such state service exists.
 
-External dependencies are declared without values in `config/external-data-sources.json`. `REPORTING_DATABASE_URL` is an optional example and is read-only. External systems may remain remote in development; they are never migrated or cloned by this app.
+External dependencies are declared without values in `config/external-data-sources.json`, which starts empty. Declare a real dependency only when an owner confirms its purpose, source-of-truth boundary, and least-privilege read-only contract. External systems may remain remote in development; they are never migrated or cloned by this app.
 
 ## Secrets and configuration
 
@@ -33,7 +33,11 @@ Run `bun run secret:add <DECLARED_NAME>`. Input is hidden and stored in the OS c
 
 ## Business Application Contract
 
-[`BUSINESS.md`](BUSINESS.md) is the business front door and routes process changes to current authoritative skills. The neutral starter process is [`business/skills/core-process/SKILL.md`](business/skills/core-process/SKILL.md). Update an existing skill in place when its process changes; create a new skill only for a genuinely new bounded process/module. Git preserves history.
+[`BUSINESS.md`](BUSINESS.md) is the business front door and initially routes definition work to [`business/skills/application-definition/SKILL.md`](business/skills/application-definition/SKILL.md). The scaffold assumes no business process. Define each real bounded process/module in its own authoritative skill before implementing it; update that skill in place as the process changes, and create a new skill only for a genuinely new module. Git preserves history.
+
+## Server-state pattern
+
+Pages and visual components consume typed TanStack Query hooks; they do not call Supabase directly for routine server data. Each real business module owns stable query keys and `use...` query/mutation hooks, which own Supabase access, validated inputs, error propagation, and precise cache invalidation. PostgreSQL RLS remains authoritative. App-wide membership and audit examples follow this boundary in `src/hooks/` without inventing a business domain.
 
 ## Common commands
 

@@ -17,6 +17,8 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 - Keep generated/adapted primitives in `src/components/ui/`; compose application components such as the shell in `src/components/`. Preserve `data-slot` attributes, accessibility, keyboard behavior, responsive states, and theme tokens when adapting a primitive.
 - Use Base UI through shadcn components, not as a competing application-level component system. Use Tailwind tokens and variants instead of page-specific copies of button, input, dialog, table, sidebar, or card styles.
 - TanStack Query owns server state. React owns local component state. Zustand is only for narrow cross-tree client state. Router search params own shareable URL state. Do not fetch routine server state in effects or add manual memoization without evidence.
+- Each real business module owns typed `use...` query and mutation hooks plus stable query keys. Those hooks own routine Supabase `.from()`/`.rpc()` access, Zod validation of untrusted inputs, error propagation, and precise cache invalidation or updates after successful mutations.
+- Pages and visual components consume those hooks; they do not call `.from()` or `.rpc()` directly for routine server data. Client filtering and hidden controls never replace RLS. Keep `src/lib/database.types.ts`, migrations, hooks, and policy tests aligned.
 
 ## Data and security boundaries
 
@@ -24,6 +26,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 - Never expose secret/service-role keys, query or browse `auth.users` from the browser, use user-editable metadata for authorization, or weaken RLS to fix a client error.
 - Keep privileged functions in an unexposed schema, revoke default execution, validate `auth.uid()`, set a safe `search_path`, and grant the narrowest required operation.
 - The app owns its schema, migrations, audit log, deterministic synthetic seed, and local tests. Never require production data locally.
+- This generic foundation owns Auth users, memberships, and audit only. Do not invent placeholder business tables, records, routes, or CRUD. Before adding the first real module, record its purpose, owners, rules, and acceptance scenarios in `BUSINESS.md` and a routed business skill.
 - Shared/external sources must be declared, least-privilege, and read-only by default. Do not clone, migrate, mutate, or silently broaden access to them.
 - Secrets never enter repository files, logs, command arguments, fixtures, or browser bundles. Use Bun.secrets locally, the protected production environment in GitHub, and the single Zod wrapper in `src/config.ts`.
 

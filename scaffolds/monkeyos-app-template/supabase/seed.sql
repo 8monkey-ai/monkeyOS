@@ -19,9 +19,3 @@ insert into monkeyos_app_template.members(user_id, role, created_by)
 values
   ('11111111-1111-4111-8111-111111111111', 'admin', null),
   ('22222222-2222-4222-8222-222222222222', 'member', '11111111-1111-4111-8111-111111111111');
-
-insert into monkeyos_app_template.work_items(id, title, description, status, created_by, created_at, updated_at)
-values
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'Confirm the first business owner', 'Replace the starter TBD with a named decision owner before production.', 'open', '11111111-1111-4111-8111-111111111111', '2026-01-05T09:00:00Z', '2026-01-05T09:00:00Z'),
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', 'Exercise the member workflow', 'Validate creation and state progression using synthetic data.', 'in_progress', '22222222-2222-4222-8222-222222222222', '2026-01-06T10:00:00Z', '2026-01-07T10:00:00Z'),
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', 'Review access boundaries', 'Confirm an authenticated non-member cannot read app-owned state.', 'done', '11111111-1111-4111-8111-111111111111', '2026-01-04T08:00:00Z', '2026-01-08T12:00:00Z');

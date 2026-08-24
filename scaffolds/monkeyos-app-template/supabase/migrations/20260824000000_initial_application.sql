@@ -24,18 +24,6 @@ create index audit_log_occurred_at_idx on monkeyos_app_template.audit_log(occurr
 create index audit_log_actor_idx on monkeyos_app_template.audit_log(actor_user_id);
 create index audit_log_entity_record_idx on monkeyos_app_template.audit_log(entity, record_id);
 
-create table monkeyos_app_template.work_items (
-  id uuid primary key default gen_random_uuid(),
-  title text not null check (length(title) between 1 and 160),
-  description text not null default '',
-  status text not null default 'open' check (status in ('open', 'in_progress', 'done')),
-  created_at timestamptz not null default now(),
-  created_by uuid not null references auth.users(id) on delete restrict,
-  updated_at timestamptz not null default now()
-);
-create index work_items_created_by_idx on monkeyos_app_template.work_items(created_by);
-create index work_items_status_created_idx on monkeyos_app_template.work_items(status, created_at desc);
-
 create function monkeyos_app_template.is_member()
 returns boolean language sql stable security definer set search_path = ''
 as $$
@@ -86,24 +74,6 @@ $$;
 create trigger members_last_admin_trigger before update or delete on monkeyos_app_template.members
 for each row execute function monkeyos_app_template.protect_last_admin();
 
-create function monkeyos_app_template.audit_work_item_change()
-returns trigger language plpgsql security definer set search_path = ''
-as $$
-begin
-  insert into monkeyos_app_template.audit_log(actor_user_id, action, entity, record_id, before_data, after_data)
-  values (
-    (select auth.uid()), 'work_item.' || lower(tg_op), 'work_item',
-    coalesce(new.id, old.id)::text,
-    case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end,
-    case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end
-  );
-  return coalesce(new, old);
-end;
-$$;
-
-create trigger work_items_audit_trigger after insert or update or delete on monkeyos_app_template.work_items
-for each row execute function monkeyos_app_template.audit_work_item_change();
-
 create function monkeyos_app_template.add_member_by_email(target_email text, target_role text default 'member')
 returns monkeyos_app_template.members
 language plpgsql security definer set search_path = ''
@@ -134,7 +104,6 @@ $$;
 
 alter table monkeyos_app_template.members enable row level security;
 alter table monkeyos_app_template.audit_log enable row level security;
-alter table monkeyos_app_template.work_items enable row level security;
 
 create policy members_select on monkeyos_app_template.members for select to authenticated
 using (user_id = (select auth.uid()) or (select monkeyos_app_template.is_admin()));
@@ -146,19 +115,9 @@ using ((select monkeyos_app_template.is_admin()) and user_id <> (select auth.uid
 create policy audit_select on monkeyos_app_template.audit_log for select to authenticated
 using ((select monkeyos_app_template.is_member()));
 
-create policy work_items_select on monkeyos_app_template.work_items for select to authenticated
-using ((select monkeyos_app_template.is_member()));
-create policy work_items_insert on monkeyos_app_template.work_items for insert to authenticated
-with check ((select monkeyos_app_template.is_member()) and created_by = (select auth.uid()));
-create policy work_items_update on monkeyos_app_template.work_items for update to authenticated
-using ((select monkeyos_app_template.is_member())) with check ((select monkeyos_app_template.is_member()));
-create policy work_items_delete on monkeyos_app_template.work_items for delete to authenticated
-using ((select monkeyos_app_template.is_admin()));
-
 revoke all on all tables in schema monkeyos_app_template from public, anon, authenticated;
 revoke all on all functions in schema monkeyos_app_template from public, anon, authenticated;
 grant select on monkeyos_app_template.members, monkeyos_app_template.audit_log to authenticated;
 grant update(role), delete on monkeyos_app_template.members to authenticated;
-grant select, insert, update(title, description, status, updated_at), delete on monkeyos_app_template.work_items to authenticated;
 grant usage, select on all sequences in schema monkeyos_app_template to authenticated;
 grant execute on function monkeyos_app_template.is_member(), monkeyos_app_template.is_admin(), monkeyos_app_template.add_member_by_email(text, text) to authenticated;

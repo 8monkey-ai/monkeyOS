@@ -24,6 +24,8 @@ This checklist is normative for the `v1` compatibility channel.
 - [x] Application-owned data is local-first; external/shared dependencies are declared, least-privilege, and read-only by default.
 - [x] PostgreSQL catalogs are the metadata source; cross-domain contracts are explicit and there is no maintained catalog.
 - [x] Local secrets use Bun.secrets; production secrets are released only after the GitHub `production` environment gate.
-- [x] Every app starts with `BUSINESS.md` plus at least one authoritative process/module skill.
+- [x] The generic app starts with only Auth, app-local membership, and audit state; it contains no invented placeholder business schema, records, routes, or CRUD.
+- [x] Every app starts with `BUSINESS.md` plus an authoritative application-definition skill; each real process/module receives a routed authoritative skill before implementation.
+- [x] Routine Supabase server state is owned by typed TanStack Query hooks with stable keys, validation, errors, and precise cache updates; pages/components consume hooks and RLS remains authoritative.
 
 An installation is not conformant if any unchecked item is waived by introducing central monkeyOS state.

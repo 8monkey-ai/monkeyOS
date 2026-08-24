@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0
+
+### Changed
+
+- Removed the invented work-item domain, CRUD UI, schema, policies, seeds, and provisioning logic so the scaffold starts as a clean application foundation.
+- Replaced the placeholder process contract with an application-definition skill that requires owner-confirmed real modules before business implementation.
+- Moved membership and audit server state behind typed TanStack Query hooks and made that boundary enforceable through agent instructions, central skills, and repository audits.
+
 ## 1.3.0
 
 ### Changed

@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldPlus, Trash2 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -15,7 +14,12 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useAuth } from "../contexts/auth";
-import { useRuntime } from "../contexts/runtime";
+import {
+  useAddMember,
+  useChangeMemberRole,
+  useMembers,
+  useRemoveMember,
+} from "../hooks/use-members";
 import { formatDate } from "../lib/utils";
 import { PageHeading } from "./dashboard";
 
@@ -23,41 +27,11 @@ const AddMemberSchema = z.object({ email: z.email(), role: z.enum(["admin", "mem
 type AddMemberValues = z.infer<typeof AddMemberSchema>;
 
 export function AccessPage() {
-  const { supabase } = useRuntime();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const members = useQuery({
-    queryKey: ["members"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("members").select("*").order("created_at");
-      if (error) throw error;
-      return data;
-    },
-  });
-  const add = useMutation({
-    mutationFn: async (values: AddMemberValues) => {
-      const { error } = await supabase.rpc("add_member_by_email", {
-        target_email: values.email,
-        target_role: values.role,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["members"] }),
-  });
-  const changeRole = useMutation({
-    mutationFn: async ({ id, role }: { id: string; role: "admin" | "member" }) => {
-      const { error } = await supabase.from("members").update({ role }).eq("user_id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["members"] }),
-  });
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("members").delete().eq("user_id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["members"] }),
-  });
+  const members = useMembers();
+  const add = useAddMember();
+  const changeRole = useChangeMemberRole();
+  const remove = useRemoveMember();
   const form = useForm<AddMemberValues>({
     resolver: zodResolver(AddMemberSchema),
     defaultValues: { email: "", role: "member" },

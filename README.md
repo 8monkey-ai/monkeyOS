@@ -660,7 +660,7 @@ Repository audits should detect business skills that are unreferenced, overlappi
 
 Business rules must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
 
-An application never relies on `BUSINESS.md` alone for process knowledge. Even a simple application starts with at least one business skill covering its initial process or module. New processes and modules receive their own skills when they are introduced.
+An application never relies on `BUSINESS.md` alone for process knowledge. The generic scaffold starts with an `application-definition` skill that explicitly records that no business domain has yet been approved; it must not invent placeholder business tables, records, routes, or CRUD. Before the first real module is implemented, its named owners, rules, and acceptance scenarios are captured in a routed authoritative skill. The definition skill is retired once real skills fully own the routing.
 
 The README links to `BUSINESS.md`, and `AGENTS.md` instructs agents to load the relevant business skills before changing business behavior.
 
@@ -1179,11 +1179,11 @@ Baseline seed data provides:
 ```text
 local Auth users
 memberships
-representative business records
-important edge cases
+representative records for each real routed module, when present
+important edge cases for those real modules
 ```
 
-Tests may add scenario-specific fixtures.
+The generic scaffold has no placeholder business schema or records. Tests may add scenario-specific synthetic fixtures only for real routed modules.
 
 External systems do not need to be cloned locally.
 
@@ -1210,7 +1210,7 @@ create local Auth users
 ↓
 seed memberships
 ↓
-seed representative business data
+seed representative data for real routed modules, when present
 ↓
 validate configured external/shared connections
 ↓
@@ -1264,6 +1264,8 @@ E2E                      Playwright
 ```
 
 No routine server-data fetching through `useEffect`.
+
+Each real module owns typed TanStack Query query/mutation hooks and stable query keys. Those hooks own routine Supabase access, Zod validation of untrusted mutation inputs, error propagation, and precise cache invalidation or updates after successful mutations. Pages and visual components consume the hooks instead of calling Supabase `.from()` or `.rpc()` directly. Client filtering and hidden controls are never authorization; PostgreSQL RLS remains authoritative.
 
 Avoid unnecessary manual memoization under React Compiler.
 
@@ -1902,6 +1904,8 @@ They check dependencies, authentication, authorization, external access, RLS, au
 
 Repository audits also check that every process/module is routed from `BUSINESS.md` and that business skills are not unreferenced, overlapping, contradictory, stale, or duplicated as process versions.
 
+They also reject invented placeholder business schema or CRUD and routine Supabase table/RPC access from pages or visual components. Real modules expose typed TanStack Query hooks with stable keys, validation, error propagation, and exact cache updates while RLS independently protects every operation.
+
 The objective is material risk reduction, not style-only churn.
 
 ---
@@ -1913,7 +1917,9 @@ Every new monkeyOS app starts with:
 ```text
 ✓ README.md
 ✓ BUSINESS.md
-✓ application-owned business skill for every process or module
+✓ authoritative application-definition skill until the first real module
+✓ application-owned business skill for every real process or module
+✓ no invented placeholder business schema, records, routes, or CRUD
 ✓ CHANGELOG.md
 ✓ semantic versioning
 ✓ version + Git SHA identification
@@ -1937,8 +1943,7 @@ Every new monkeyOS app starts with:
 ✓ local Supabase
 ✓ deterministic synthetic seed data
 ✓ local admin/member/non-member users
-✓ representative business records
-✓ important edge cases
+✓ representative records and edge cases for every real routed module
 ✓ reproducible local reset
 ✓ no production-data dependency for owned state
 
@@ -2179,6 +2184,8 @@ Data architecture:
 > **Changes that matter to the business are audited by the application that owns them.**
 
 > **Every application has an application-owned Business Application Contract system: `BUSINESS.md` contains the overall purpose and business map, while every process or module is defined in its own business skill from the beginning.**
+
+> **The generic scaffold invents no business domain. The first real module begins with named owners and an authoritative routed skill, then adds coherent schema, typed query hooks, RLS, audit, UI, and tests.**
 
 > **Business skills describe current authoritative processes. Existing processes are updated in place; Git preserves history, and new skills are created only for genuinely new processes or modules.**
 

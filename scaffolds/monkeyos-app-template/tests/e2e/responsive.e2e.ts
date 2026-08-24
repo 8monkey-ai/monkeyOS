@@ -5,16 +5,18 @@ test("admin signs in and reaches protected, responsive application", async ({ pa
   await page.getByLabel("Email").fill("admin@example.test");
   await page.getByLabel("Password").fill("password123");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: "Good work starts with clarity." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Ready for the first real module." }),
+  ).toBeVisible();
   if (testInfo.project.name === "desktop") {
     await expect(page.getByRole("link", { name: "Access" })).toBeVisible();
   } else {
     await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(page.getByRole("link", { name: "Access" })).toBeVisible();
   }
-  await page.getByRole("link", { name: "Work items" }).click();
-  await expect(page.getByRole("heading", { name: "Work items" })).toBeVisible();
-  await expect(page.getByText("Confirm the first business owner")).toBeVisible();
+  await page.getByRole("link", { name: "Audit trail" }).click();
+  await expect(page.getByRole("heading", { name: "Audit trail" })).toBeVisible();
+  await expect(page.getByText("membership.insert").first()).toBeVisible();
 });
 
 test("authenticated non-member is denied by app membership", async ({ page }) => {

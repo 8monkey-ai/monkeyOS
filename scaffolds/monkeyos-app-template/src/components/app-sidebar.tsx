@@ -1,4 +1,4 @@
-import { ClipboardList, Gauge, History, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Gauge, History, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { useAuth } from "@/contexts/auth";
 import { useRuntime } from "@/contexts/runtime";
@@ -20,7 +20,6 @@ import {
 
 const links = [
   { to: "/", label: "Overview", icon: Gauge, end: true },
-  { to: "/work-items", label: "Work items", icon: ClipboardList, end: false },
   { to: "/audit", label: "Audit trail", icon: History, end: false },
 ];
 

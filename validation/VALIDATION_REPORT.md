@@ -1,22 +1,22 @@
 # monkeyOS scaffold validation report
 
 Date: 2026-08-24
-Specification: latest `8monkey-ai/monkeyOS` `main` README, updated in commit `04a0df472bd7f40e65e59b142200ee24cb45555b` and re-read after the update.
+Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with this implementation and treated as authoritative.
 
 ## Maintained scaffold sources
 
-- `scaffolds/monkeyos-app-template` — generic application scaffold, version 1.3.0
-- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 1.3.0
+- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.0.0
+- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.0.0
 
 ## Results
 
 | Area | Result |
 | --- | --- |
-| Platform formatting, lint, typecheck and unit tests | PASS — 15 tests |
+| Platform formatting, lint, typecheck and unit tests | PASS — 16 tests |
 | Runtime architecture contract | PASS — ARM64 default and AMD64 selection tested; invalid aliases rejected |
 | App formatting, lint, typecheck, unit tests, production build and deterministic audit | PASS — 3 tests; 0 audit findings |
 | Official shadcn/ui integration | PASS — official `shadcn@latest` CLI; Base UI `base-nova` preset; CLI-generated sidebar and standard registry primitives |
-| Local Supabase migration, deterministic seed and pgTAP RLS/audit tests | PASS — 12 assertions |
+| Local Supabase migration, deterministic seed, schema lint and pgTAP RLS/audit tests | PASS — no schema errors; 12 assertions |
 | Playwright responsive coverage | PASS — 6 tests across mobile, tablet and desktop |
 | GitHub workflow YAML parsing | PASS |
 | AWS CloudFormation validation (current `cfn-lint`) | PASS |
@@ -30,6 +30,8 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated in commit `04
 
 - shadcn/ui is the primary application UI system. `components.json` is initialized through the official CLI with the Base UI preset; standard primitives and the sidebar are installed through `shadcn@latest add`, not recreated by hand. Generated registry files remain in `src/components/ui/`; application composition stays outside it.
 - Deterministic repository audits verify the official preset, the CLI entry point, required generated component files, and official Sidebar composition. `AGENTS.md`, central review, and repository-audit skills enforce the same rule on future work.
+- The generic scaffold contains no invented business table, seed record, route, or CRUD screen. Its application-definition skill routes the first real module through named owner decisions before implementation; platform provisioning creates only schema/role, membership, and audit foundations.
+- Routine Supabase data access lives behind typed TanStack Query hooks with stable keys, validated mutations, error propagation, and precise cache updates. Pages and visual components consume hooks while RLS remains authoritative; deterministic audits enforce this boundary.
 - Bun is not pinned to a minor line. GitHub workflows install latest stable Bun, the Dockerfile uses the stable moving `oven/bun:alpine` tag, and container builds force a fresh base-image pull. Committed `bun.lock` still preserves exact application dependency resolutions for each tested SHA.
 - One Platform Admin-owned organization variable, `RUNTIME_ARCH`, selects `arm64` or `amd64` and defaults to `arm64`. `amd64` is the OCI architecture name for x86-64 on both AMD and Intel.
 - The same architecture value drives central CI, GHCR manifest verification, Kamal configuration and provider architecture inputs. App environments must not shadow it.

@@ -7,9 +7,6 @@ import { LoginPage } from "./pages/login";
 const DashboardPage = lazy(() =>
   import("./pages/dashboard").then((module) => ({ default: module.DashboardPage })),
 );
-const WorkItemsPage = lazy(() =>
-  import("./pages/work-items").then((module) => ({ default: module.WorkItemsPage })),
-);
 const AuditPage = lazy(() =>
   import("./pages/audit").then((module) => ({ default: module.AuditPage })),
 );
@@ -31,7 +28,6 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
-            <Route path="work-items" element={<WorkItemsPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route element={<AdminRoute />}>
               <Route path="access" element={<AccessPage />} />

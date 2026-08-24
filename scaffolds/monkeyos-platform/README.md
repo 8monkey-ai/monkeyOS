@@ -41,7 +41,7 @@ finance-reporting
 └── local secret service: monkeyOS:acme/finance-reporting
 ```
 
-Provisioning writes no registry record. It configures state where it belongs: Supabase schema/roles and initial app-local member; GitHub managed callers, ruleset, and protected environment; existing runtime-pool values in protected environment variables.
+Provisioning writes no registry record. It configures state where it belongs: Supabase schema/roles, app-local membership/audit foundations, and initial member; GitHub managed callers, ruleset, and protected environment; existing runtime-pool values in protected environment variables. It never invents business tables or records. The first real module begins only after its owners and rules are captured in `BUSINESS.md` and a routed application-owned skill.
 
 ## Central workflows
 
@@ -57,6 +57,8 @@ Application callers stay tiny and reference `@v1`. A caller cannot add steps to 
 Canonical skills live in `skills/` and synchronize into app `.monkeyos/skills/` with a SHA-256 manifest. They are platform-managed files. Application business truth lives separately in `BUSINESS.md` and `business/skills/*/SKILL.md` and is never overwritten by synchronization.
 
 The `commit` skill requires relevant business skills to be loaded and updated in place before version/changelog, tests, review, security review, commit, and push. The repository audit flags unreferenced, overlapping, contradictory, stale, and version-duplicated business skills.
+
+Real application modules keep routine Supabase server state behind typed TanStack Query hooks with stable keys, validated mutations, propagated errors, and precise cache updates. Pages and visual components consume those hooks; RLS independently enforces authorization. The generic scaffold includes no placeholder business CRUD.
 
 Application UI uses official shadcn/ui registry code as its primary component system. Initialize it through `shadcn@latest` with the Base UI preset and add standard components—including the sidebar shell—through the CLI. Keep generated registry primitives in `src/components/ui/`, compose them in application components, and treat hand-written approximations of available registry components as an audit failure.
 

@@ -2,42 +2,45 @@
 
 ## Purpose and scope
 
-This neutral starter supports a lightweight work-item lifecycle so teams can replace it with a real bounded application process. Users are authenticated staff with explicit app membership. It is out of scope to model organization-wide identity, HR records, deployment state, shared data ownership, or infrastructure.
+This generic scaffold intentionally defines no business domain. It provides the secure application foundation while the first real bounded process or module is identified. It is out of scope to invent placeholder workflows, business records, organization-wide identity, deployment state, shared-data ownership, or infrastructure.
 
 ## Owners and decision rights
 
-- Business owner: **TBD before production** — decides purpose and prioritization.
-- Process owner: **TBD before production** — decides work-item states and exceptions.
-- Data owner: **TBD before production** — decides classification, retention, and sharing.
+- Business owner: **TBD before the first business implementation** — decides purpose, scope, and priority.
+- Process owner: **TBD before the first business implementation** — decides workflows, rules, and exceptions.
+- Data owner: **TBD before the first business implementation** — decides classification, retention, sharing, and source-of-truth boundaries.
 - Platform Team: decides identity, production authorization mechanism, runtime, and infrastructure; it does not decide business behavior.
 
 ## Vocabulary and invariants
 
-- **Work item**: app-owned record identified by immutable UUID.
 - **Member**: existing Supabase Auth user granted local application access.
-- **Admin**: member allowed to manage local access and delete work items.
-- Identity is shared; authorization, audit, and business state are local.
-- Every material work-item and membership change is traceable in the local audit log.
+- **Admin**: member allowed to manage app-local access.
+- **Business module**: a real, independently bounded capability confirmed by its owners and defined in its own skill.
+- Identity is shared; authorization, audit, and future business state are application-local.
+- Membership changes are traceable in the local audit log; each future business module must define its own material audit events.
 - External/shared dependencies are explicit and read-only unless the data owner approves a source-owned operation.
+- No placeholder business table, record, process, or UI is authoritative.
 
 ## Process and module index
 
-- [Core work-item process](business/skills/core-process/SKILL.md) — creation, state progression, correction, deletion, audit, and acceptance.
+- [Application definition](business/skills/application-definition/SKILL.md) — governs the owner-confirmed transition from the empty foundation to the first real business modules.
 
 ## Routing table
 
-| Change                                                                                                     | Required business skill                                                           |
-| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Work-item fields, validation, states, transitions, permissions, deletion, audit, retention, or UI behavior | `business/skills/core-process/SKILL.md`                                           |
-| Membership/access mechanism                                                                                | Core process for operational impact plus platform security skills                 |
-| A genuinely new independent business process/module                                                        | Search existing skills first; create and route a new skill only when none owns it |
+| Change                                                                                   | Required business skill                                                           |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Purpose, owners, first process/module, data boundaries, or initial operating constraints | `business/skills/application-definition/SKILL.md`                                 |
+| Existing implemented process/module behavior                                             | Its current routed business skill; update it in place                             |
+| A genuinely new independent process/module                                               | Search existing skills first; create and route a new skill only when none owns it |
+| Membership/access mechanism                                                              | Relevant operational skills for business impact plus platform security skills     |
 
 ## Rule priority
 
-Confirmed owner decisions override assumptions. Then this routing contract selects the relevant skill; the selected business skill is authoritative for detailed current behavior. If code, tests, issues, or UI conflict with the skill, stop and surface the contradiction rather than silently choosing.
+Confirmed owner decisions override assumptions. Then this routing contract selects the relevant skill; the selected business skill is authoritative for detailed current behavior. If code, tests, issues, or UI conflict with a skill, stop and surface the contradiction rather than silently choosing.
 
 ## Open decisions
 
-- Replace all **TBD** owners before production.
-- Confirm real classification, retention, export, accessibility, localization, and operating constraints.
-- Replace or deliberately retain the neutral work-item process before the first domain release.
+- Name the business, process, and data owners.
+- Define the first real bounded processes/modules and their acceptance scenarios.
+- Confirm classification, retention, export, accessibility, localization, integrations, reconciliation, and operating constraints before implementing affected behavior.
+- Retire the application-definition skill after all current business behavior is routed to real authoritative module/process skills.

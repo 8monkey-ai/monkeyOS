@@ -4,10 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [
-    react({ compiler: true, exclude: [/node_modules/, /src\/pages\/work-items\.tsx$/] }),
-    tailwindcss(),
-  ],
+  plugins: [react({ compiler: true, exclude: [/node_modules/] }), tailwindcss()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

@@ -1,30 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { useRuntime } from "../contexts/runtime";
+import { useAuditLog } from "../hooks/use-audit-log";
 import { formatDate } from "../lib/utils";
 import { PageHeading } from "./dashboard";
 
 export function AuditPage() {
-  const { supabase } = useRuntime();
-  const audit = useQuery({
-    queryKey: ["audit-log"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("audit_log")
-        .select("*")
-        .order("occurred_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data;
-    },
-  });
+  const audit = useAuditLog();
   return (
     <div>
       <PageHeading
         eyebrow="Traceability"
         title="Audit trail"
-        detail="The latest material membership and work-item changes owned by this application."
+        detail="The latest material membership changes and future business events owned by this application."
       />
       <Card className="mt-8 overflow-hidden">
         <div className="divide-y divide-slate-100">

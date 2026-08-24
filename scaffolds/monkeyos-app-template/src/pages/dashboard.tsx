@@ -1,67 +1,43 @@
-import { CheckCircle2, CircleDot, Clock3 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { BookOpenCheck, Database, Rocket } from "lucide-react";
 import { Card } from "../components/ui/card";
-import { useWorkItems } from "../hooks/use-work-items";
+
+const foundations = [
+  {
+    title: "Define the business",
+    detail: "Name the owners and capture the first real process in BUSINESS.md and its own skill.",
+    icon: BookOpenCheck,
+  },
+  {
+    title: "Own data locally",
+    detail: "Add only application-owned tables, migrations, RLS policies, audit events, and seeds.",
+    icon: Database,
+  },
+  {
+    title: "Ship through the platform",
+    detail: "Keep app workflows thin; central CI builds and promotes an immutable tested image.",
+    icon: Rocket,
+  },
+];
 
 export function DashboardPage() {
-  const items = useWorkItems();
-  const counts = [
-    {
-      status: "Open",
-      count: items.data?.filter((item) => item.status === "open").length ?? 0,
-      icon: CircleDot,
-      tone: "text-sky-700 bg-sky-50",
-    },
-    {
-      status: "In progress",
-      count: items.data?.filter((item) => item.status === "in_progress").length ?? 0,
-      icon: Clock3,
-      tone: "text-amber-700 bg-amber-50",
-    },
-    {
-      status: "Done",
-      count: items.data?.filter((item) => item.status === "done").length ?? 0,
-      icon: CheckCircle2,
-      tone: "text-emerald-700 bg-emerald-50",
-    },
-  ];
   return (
     <div>
       <PageHeading
-        eyebrow="Workspace"
-        title="Good work starts with clarity."
-        detail="A neutral operational view of the current work-item lifecycle."
+        eyebrow="Application foundation"
+        title="Ready for the first real module."
+        detail="Authentication, app-local access, audit, configuration, and delivery are ready without inventing a placeholder business domain."
       />
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        {counts.map(({ status, count, icon: Icon, tone }) => (
-          <Card key={status} className="p-5">
-            <div className={`grid size-10 place-items-center rounded-xl ${tone}`}>
+      <div className="mt-8 grid gap-4 lg:grid-cols-3">
+        {foundations.map(({ title, detail, icon: Icon }) => (
+          <Card key={title} className="p-5 sm:p-7">
+            <div className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700">
               <Icon className="size-5" />
             </div>
-            <p className="mt-5 text-3xl font-bold">{count}</p>
-            <p className="mt-1 text-sm text-slate-500">{status}</p>
+            <h2 className="mt-5 text-lg font-bold">{title}</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p>
           </Card>
         ))}
       </div>
-      <Card className="mt-6 p-5 sm:p-7">
-        <div>
-          <h2 className="text-lg font-bold">Work by status</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Live app-owned data, protected by membership RLS.
-          </p>
-        </div>
-        <div className="mt-6 h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={counts}>
-              <CartesianGrid vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="status" tickLine={false} axisLine={false} fontSize={12} />
-              <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} />
-              <Tooltip cursor={{ fill: "#f1f5f9" }} />
-              <Bar dataKey="count" fill="#0f766e" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
     </div>
   );
 }

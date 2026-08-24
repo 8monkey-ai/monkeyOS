@@ -76,6 +76,28 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   if (packageJson.scripts?.["ui:add"] !== "bunx --bun shadcn@latest add") {
     findings.push({ level: "BLOCKING", message: "ui:add must invoke the official shadcn CLI" });
   }
+  const agents = await readFile(join(root, "AGENTS.md"), "utf8");
+  for (const principle of [
+    "TanStack Query",
+    "stable query keys",
+    "Pages and visual components",
+    "RLS",
+  ]) {
+    if (!agents.includes(principle)) {
+      findings.push({ level: "BLOCKING", message: `AGENTS.md does not enforce ${principle}` });
+    }
+  }
+  for (const file of files.filter((file) =>
+    /^(?:src\/pages|src\/components)\/.*\.tsx$/.test(file),
+  )) {
+    const source = await readFile(join(root, file), "utf8");
+    if (/\.(?:from|rpc)\s*\(/.test(source)) {
+      findings.push({
+        level: "BLOCKING",
+        message: `${file} accesses Supabase data directly; use a typed TanStack Query hook`,
+      });
+    }
+  }
   for (const component of [
     "button",
     "card",

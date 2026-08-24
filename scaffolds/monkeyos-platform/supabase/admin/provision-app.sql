@@ -41,18 +41,6 @@ create index if not exists audit_log_occurred_at_idx on __APP_SCHEMA__.audit_log
 create index if not exists audit_log_actor_idx on __APP_SCHEMA__.audit_log(actor_user_id);
 create index if not exists audit_log_entity_record_idx on __APP_SCHEMA__.audit_log(entity, record_id);
 
-create table if not exists __APP_SCHEMA__.work_items (
-  id uuid primary key default gen_random_uuid(),
-  title text not null check (length(title) between 1 and 160),
-  description text not null default '',
-  status text not null default 'open' check (status in ('open', 'in_progress', 'done')),
-  created_at timestamptz not null default now(),
-  created_by uuid not null references auth.users(id) on delete restrict,
-  updated_at timestamptz not null default now()
-);
-create index if not exists work_items_created_by_idx on __APP_SCHEMA__.work_items(created_by);
-create index if not exists work_items_status_created_idx on __APP_SCHEMA__.work_items(status, created_at desc);
-
 create or replace function __APP_SCHEMA__.is_member()
 returns boolean language sql stable security definer set search_path = ''
 as $$
@@ -108,28 +96,6 @@ drop trigger if exists members_last_admin_trigger on __APP_SCHEMA__.members;
 create trigger members_last_admin_trigger before update or delete on __APP_SCHEMA__.members
 for each row execute function __APP_SCHEMA__.protect_last_admin();
 
-create or replace function __APP_SCHEMA__.audit_work_item_change()
-returns trigger language plpgsql security definer set search_path = ''
-as $$
-begin
-  insert into __APP_SCHEMA__.audit_log(actor_user_id, action, entity, record_id, before_data, after_data)
-  values (
-    (select auth.uid()),
-    'work_item.' || lower(tg_op),
-    'work_item',
-    coalesce(new.id, old.id)::text,
-    case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end,
-    case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end
-  );
-  return coalesce(new, old);
-end;
-$$;
-
-drop trigger if exists work_items_audit_trigger on __APP_SCHEMA__.work_items;
-create trigger work_items_audit_trigger
-after insert or update or delete on __APP_SCHEMA__.work_items
-for each row execute function __APP_SCHEMA__.audit_work_item_change();
-
 create or replace function __APP_SCHEMA__.add_member_by_email(target_email text, target_role text default 'member')
 returns __APP_SCHEMA__.members
 language plpgsql security definer set search_path = ''
@@ -160,7 +126,6 @@ $$;
 
 alter table __APP_SCHEMA__.members enable row level security;
 alter table __APP_SCHEMA__.audit_log enable row level security;
-alter table __APP_SCHEMA__.work_items enable row level security;
 
 drop policy if exists members_select on __APP_SCHEMA__.members;
 create policy members_select on __APP_SCHEMA__.members for select to authenticated
@@ -176,25 +141,10 @@ drop policy if exists audit_select on __APP_SCHEMA__.audit_log;
 create policy audit_select on __APP_SCHEMA__.audit_log for select to authenticated
 using ((select __APP_SCHEMA__.is_member()));
 
-drop policy if exists work_items_select on __APP_SCHEMA__.work_items;
-create policy work_items_select on __APP_SCHEMA__.work_items for select to authenticated
-using ((select __APP_SCHEMA__.is_member()));
-drop policy if exists work_items_insert on __APP_SCHEMA__.work_items;
-create policy work_items_insert on __APP_SCHEMA__.work_items for insert to authenticated
-with check ((select __APP_SCHEMA__.is_member()) and created_by = (select auth.uid()));
-drop policy if exists work_items_update on __APP_SCHEMA__.work_items;
-create policy work_items_update on __APP_SCHEMA__.work_items for update to authenticated
-using ((select __APP_SCHEMA__.is_member()))
-with check ((select __APP_SCHEMA__.is_member()));
-drop policy if exists work_items_delete on __APP_SCHEMA__.work_items;
-create policy work_items_delete on __APP_SCHEMA__.work_items for delete to authenticated
-using ((select __APP_SCHEMA__.is_admin()));
-
 revoke all on all tables in schema __APP_SCHEMA__ from public, anon, authenticated;
 revoke all on all functions in schema __APP_SCHEMA__ from public, anon, authenticated;
 grant select on __APP_SCHEMA__.members, __APP_SCHEMA__.audit_log to authenticated;
 grant update(role), delete on __APP_SCHEMA__.members to authenticated;
-grant select, insert, update(title, description, status, updated_at), delete on __APP_SCHEMA__.work_items to authenticated;
 grant usage, select on all sequences in schema __APP_SCHEMA__ to authenticated;
 grant execute on function __APP_SCHEMA__.is_member(), __APP_SCHEMA__.is_admin(), __APP_SCHEMA__.add_member_by_email(text, text) to authenticated;
 

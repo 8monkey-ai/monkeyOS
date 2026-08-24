@@ -1,5 +1,4 @@
 # monkeyOS
-
 ## Overall Approach & Architecture
 
 ## 1. Objective
@@ -28,7 +27,7 @@ The standardized platform layer is:
 GitHub     → source, CI/CD, configuration, permissions, secrets, GHCR
 Supabase   → Postgres + Auth
 Cloudflare → DNS, TLS, CDN, load balancing
-Terraform  → runtime infrastructure
+Cloud IaC  → provider-native runtime infrastructure provisioning
 Kamal      → application deployment
 Pi         → AI execution inside GitHub Actions
 Bun        → local runtime, tooling and secure local secret access
@@ -46,7 +45,7 @@ The goal is:
 
 ## Layer 1 — monkeyOS Distribution
 
-The portable upstream platform:
+The portable upstream platform contains:
 
 ```text
 monkeyOS
@@ -55,7 +54,7 @@ monkeyOS
 ├── platform scaffold
 ├── reusable workflows
 ├── shared skills
-├── Terraform infrastructure
+├── cloud infrastructure definitions
 ├── provisioning logic
 └── documentation
 ```
@@ -78,13 +77,13 @@ This repository owns the organization's canonical:
 reusable workflows
 shared skills
 application provisioning
-Terraform infrastructure
+cloud infrastructure definitions
 deployment implementation
 Pi configuration
 platform documentation
 ```
 
-Organization-level configuration covers things such as GitHub rulesets, shared variables/secrets, Supabase, Cloudflare, runtime infrastructure, and deployment credentials.
+Organization-level configuration covers GitHub rulesets, shared variables/secrets, Supabase, Cloudflare, runtime infrastructure, and deployment credentials.
 
 ## Layer 3 — Application Repository
 
@@ -155,7 +154,7 @@ Supabase Auth
 Cloudflare
 → edge/routing state
 
-Terraform
+cloud provider control plane
 → infrastructure state
 ```
 
@@ -220,7 +219,7 @@ production hostname
 runtime deployment
 ```
 
-Application repositories do not contain runtime hosts, cloud resource IDs, Cloudflare configuration, production SSH, Terraform configuration, or Kamal host configuration.
+Application repositories do not contain runtime hosts, cloud resource IDs, Cloudflare configuration, production SSH, cloud infrastructure definitions, or Kamal host configuration.
 
 Those belong to the organization platform.
 
@@ -290,7 +289,7 @@ central skills
 rulesets
 production environment configuration
 deployment policy
-Terraform
+cloud infrastructure provisioning
 runtime infrastructure
 Cloudflare
 shared Supabase configuration
@@ -481,7 +480,7 @@ It contains application-relevant information:
 - application security
 - testing expectations
 
-It does not contain platform operational details such as Terraform, production SSH, Cloudflare maintenance, Kamal internals, or runtime topology.
+It does not contain platform operational details such as cloud provisioning internals, production SSH, Cloudflare maintenance, Kamal internals, or runtime topology.
 
 One platform rule is sufficient:
 
@@ -517,7 +516,7 @@ Getting started should be approximately:
 
 Before that, the Platform Team only needs to create/provision the GitHub repository and database setup.
 
-If the app requires development credentials for shared/external systems, the README lists **which secret names are required**, but never their values.
+If the app requires development credentials for shared/external systems, the README lists which secret names are required, but never their values.
 
 ---
 
@@ -756,7 +755,7 @@ Cross-domain writes use explicit operations controlled by the source domain rath
 
 # 20. Shared and External Databases
 
-Applications may also need to consume databases that are **not owned by the app**, including:
+Applications may consume databases that are not owned by the app, including:
 
 ```text
 shared reporting databases
@@ -788,7 +787,7 @@ finance app
     → read-only
 ```
 
-Read-only access should be enforced by the source database or external system wherever technically possible, rather than relying on application behavior.
+Read-only access should be enforced by the source database or system wherever technically possible.
 
 The application must not run migrations or attempt to take ownership of these databases.
 
@@ -796,19 +795,11 @@ The application must not run migrations or attempt to take ownership of these da
 
 # 21. External Data Sources in Development
 
-monkeyOS guarantees reproducibility for **application-owned state**.
+monkeyOS guarantees reproducibility for application-owned state.
 
-It does **not** require a local clone or development equivalent of every external database.
+It does not require a local clone or development equivalent of every external database.
 
-That would be unrealistic for systems that may be:
-
-- large
-- legacy
-- vendor-managed
-- shared across many applications
-- outside the organization's control
-
-Therefore local development may look like:
+Local development may therefore look like:
 
 ```text
 Local application
@@ -822,48 +813,38 @@ Local application
     → remote, read-only
 ```
 
-The same external source may sometimes be used by both development and production if no separate environment exists and the security/privacy model permits it.
+The same external source may sometimes be used by development and production if no separate environment exists and the security/privacy model permits it.
 
 The rule is:
 
 > **Own data is local-first. External systems remain external and may be accessed remotely during development with least-privilege credentials.**
 
-Production data from the application's own schema is still never the normal local-development source.
-
 ---
 
 # 22. External Data Dependencies Are Explicit
 
-Each app's README should state which external/shared data sources it consumes and what they are used for.
+Each app's README should state which external/shared data sources it consumes and why.
 
-The application may also maintain a lightweight, non-secret declaration of required connection names, for example:
+The application may maintain a lightweight non-secret declaration of required connection names, for example:
 
 ```text
 ERP_DATABASE_URL
 REPORTING_DATABASE_URL
 ```
 
-This declaration exists to support:
+This supports documentation, startup validation, tests, agent understanding, and provisioning.
 
-```text
-documentation
-startup validation
-tests
-agent understanding
-provisioning
-```
-
-It is **not** a monkeyOS registry and contains no secret values.
+It is not a monkeyOS registry and contains no secret values.
 
 ---
 
 # 23. Development vs Production Secrets
 
-monkeyOS deliberately separates development and production credentials.
+monkeyOS separates development and production credentials:
 
 ```text
 DEVELOPMENT
-→ credentials available to authorized developer
+→ credential available to authorized developer
 → stored locally using Bun.secrets
 
 PRODUCTION
@@ -871,33 +852,15 @@ PRODUCTION
 → never distributed to developer
 ```
 
-For example:
+The Platform Team provides required development credentials once.
 
-```text
-Development
-ERP_DATABASE_URL
-REPORTING_DATABASE_URL
-→ Bun.secrets
-
-Production
-ERP_DATABASE_URL
-REPORTING_DATABASE_URL
-→ GitHub production environment
-```
-
-A developer may need a read-only development credential for a shared or external database.
-
-The Platform Team provides that credential to the developer once through an appropriate secure channel.
-
-The developer stores it locally using the monkeyOS `add secret` flow.
-
-Production credentials are never provided to developers.
+Production credentials remain inside GitHub.
 
 ---
 
 # 24. Bun.secrets for Local Secret Storage
 
-Sensitive local development credentials are stored through **Bun.secrets**, using the operating system's secure credential storage rather than plaintext `.env` files.
+Sensitive local credentials are stored through **Bun.secrets**, backed by the OS credential store.
 
 Conceptually:
 
@@ -913,9 +876,7 @@ Bun.secrets
 OS credential store
 ```
 
-Secrets should be namespaced by organization and repository so that applications do not collide.
-
-Conceptually:
+Secrets should be namespaced by organization + repository:
 
 ```text
 monkeyOS:<organization>/<repository>
@@ -924,34 +885,15 @@ ERP_DATABASE_URL
 REPORTING_DATABASE_URL
 ```
 
-The developer experience should be:
-
-```text
-Missing development secret: ERP_DATABASE_URL
-
-Ask the Platform Team for the development credential, then run:
-
-add development secret ERP_DATABASE_URL
-```
-
-The command securely prompts for the value and stores it without:
-
-```text
-printing it
-putting it into Git
-putting it into shell history
-putting it into README/AGENTS.md
-```
+The value must never be printed, committed, or placed into shell history.
 
 ---
 
 # 25. One Typed Configuration Wrapper
 
-Application code should **not** call Bun.secrets directly throughout the codebase.
+Application code should not call Bun.secrets directly throughout the codebase.
 
-monkeyOS provides a small typed configuration wrapper.
-
-Conceptually:
+monkeyOS provides one typed configuration layer:
 
 ```text
 Development
@@ -963,45 +905,26 @@ process environment
       ↓
 
 Tests
-explicit test configuration
+explicit test values
       ↓
-      └────→ one typed config layer
+      └────→ typed config wrapper
                     ↓
              application code
 ```
 
-Application code simply consumes something like:
+Zod validates configuration at startup.
 
-```text
-config.ERP_DATABASE_URL
-config.REPORTING_DATABASE_URL
-```
-
-The wrapper resolves the value according to environment:
-
-```text
-development → Bun.secrets
-production  → process environment
-tests       → explicit test values
-```
-
-Zod validates the resolved configuration at startup.
-
-The application should fail fast with a useful error if a required value is missing or malformed.
-
-This keeps business code independent of secret-storage mechanics.
+The app fails fast if required configuration is missing or malformed.
 
 ---
 
 # 26. Secret Classification
 
-Not every configuration value is a secret.
-
 The convention is:
 
 ```text
 Non-sensitive configuration
-→ normal environment/config values
+→ normal environment/config
 
 Sensitive local development values
 → Bun.secrets
@@ -1010,45 +933,27 @@ Sensitive production values
 → GitHub production environment secrets
 ```
 
-Examples of non-sensitive organization configuration may include:
-
-```text
-SUPABASE_URL
-SUPABASE_PUBLISHABLE_KEY
-APPS_BASE_DOMAIN
-```
-
-depending on the specific service semantics.
-
-Secrets include database passwords, private API keys, tokens, and equivalent credentials.
+Developers do not manage production secret values.
 
 ---
 
 # 27. Shared Database Security Rules
 
-Shared/external database access should follow these defaults:
+Shared/external database access defaults to:
 
 ```text
-read-only by default
+read-only
 least privilege
-only required databases/schemas/tables where possible
+only required schemas/tables where possible
 no DDL
 no migrations
 no ownership
-separate development and production credentials where possible
+separate dev/prod credentials where possible
 ```
 
-Where a source system supports individual identities, SSO, or short-lived authentication, prefer those.
+Where individual identities, SSO, or short-lived credentials are supported, prefer them.
 
-Where it only supports a shared database account, create the narrowest app/development-specific read-only account practical.
-
-For example:
-
-```text
-finance_dev_reporting_ro
-```
-
-rather than one organization-wide unrestricted credential.
+Otherwise use the narrowest practical app-specific read-only account.
 
 External/shared database access is a dependency, not ownership.
 
@@ -1072,21 +977,9 @@ hr.*
 ops.*
 ```
 
-A developer role such as:
+A developer role such as `finance_dev` gets own-schema development access, structural metadata discovery, and explicit cross-domain contracts.
 
-```text
-finance_dev
-```
-
-gets its own-schema development access, structural metadata discovery, and explicit cross-domain contracts.
-
-A runtime role such as:
-
-```text
-finance_runtime
-```
-
-gets only required own-schema access and explicit runtime contracts, with no DDL or global metadata discovery.
+A runtime role such as `finance_runtime` gets only required own-schema access and explicit runtime contracts, with no DDL or global metadata discovery.
 
 Applications never receive broad credentials such as `postgres`, project owner, or `service_role`.
 
@@ -1117,9 +1010,9 @@ Supabase CLI
 Docker-compatible runtime
 ```
 
-It does not require Terraform, Kamal, cloud CLIs, production SSH, production database credentials, or Cloudflare tooling.
+It does not require cloud infrastructure tooling, Kamal, production SSH, production database credentials, or Cloudflare tooling.
 
-Each app runs its **own state** against local Supabase:
+Each app runs its owned state against local Supabase:
 
 ```text
 Application
@@ -1131,47 +1024,20 @@ Local Supabase
     └── synthetic test data
 ```
 
-Every application must be usable locally without production data from its own domain.
+Every app must be usable locally without production data from its own domain.
 
-### Baseline seed
-
-Each repository contains deterministic baseline data, typically via:
-
-```text
-supabase/seed.sql
-```
-
-It establishes:
+Baseline seed data provides:
 
 ```text
 local Auth users
-application memberships
+memberships
 representative business records
 important edge cases
 ```
 
-For example:
+Tests may add scenario-specific fixtures.
 
-```text
-admin@example.local
-→ admin
-
-member@example.local
-→ member
-
-nonmember@example.local
-→ valid identity, no app membership
-```
-
-### Test fixtures
-
-Automated tests may create separate scenario-specific fixtures.
-
-### External-source tests
-
-Where an external source is remote and cannot reasonably be reproduced locally, automated tests should isolate application behavior using the narrowest practical contract/fixture rather than cloning the entire external database.
-
-The purpose is to test monkeyOS application behavior, not recreate third-party infrastructure.
+External systems do not need to be cloned locally.
 
 ---
 
@@ -1204,18 +1070,7 @@ generate database types
 ↓
 start application
 ↓
-report local URL + test users + dependency status
-```
-
-For example:
-
-```text
-✓ Local Supabase ready
-✓ Reporting database available
-✓ ERP database available
-✓ Application started
-
-App: http://localhost:5173
+report URL + test users + dependency status
 ```
 
 Secret values are never displayed.
@@ -1274,25 +1129,7 @@ The engineering standard is:
 
 > **SOLID and clean, but simple.**
 
-Avoid both under-engineering:
-
-```text
-giant components
-duplicated business logic
-untyped data
-hidden side effects
-ad-hoc state
-```
-
-and over-engineering:
-
-```text
-speculative abstractions
-unnecessary factories/interfaces
-premature extensibility
-deep indirection
-frameworks without concrete need
-```
+Avoid both under-engineering and speculative abstraction.
 
 Every meaningful change follows:
 
@@ -1314,7 +1151,7 @@ quality gate
 commit
 ```
 
-Review findings are:
+Review findings are classified as:
 
 ```text
 BLOCKING
@@ -1323,28 +1160,6 @@ SUGGESTION
 ```
 
 No commit proceeds with blocking findings.
-
-Security review includes:
-
-```text
-authentication
-authorization
-membership
-RLS
-schema boundaries
-cross-domain access
-external database access
-audit coverage
-PII
-test-data privacy
-local secret handling
-production secret isolation
-validation
-injection
-dependencies
-frontend security
-container security
-```
 
 ---
 
@@ -1383,8 +1198,6 @@ commit
 ↓
 push
 ```
-
-This makes quality review part of the development loop rather than something that happens only after code reaches GitHub.
 
 ---
 
@@ -1426,25 +1239,21 @@ Docker build
 GHCR publish
 ```
 
-CI verifies that application code does not depend on local-only secret mechanics in production.
+CI also validates changelog/version consistency.
 
-It also validates changelog/version consistency.
-
-> **Agent reasoning provides contextual review; CI provides deterministic verification.**
-
-Successful CI produces an immutable artifact:
+Successful CI produces:
 
 ```text
 ghcr.io/<organization>/<repository>:<git-sha>
 ```
 
-It is built once, tested once, security checked once, and deployed unchanged.
+The image is built once, tested once, security checked once, and deployed unchanged.
 
 ---
 
 # 35. GitHub Is the Platform Control Plane
 
-GitHub owns the state it is already good at:
+GitHub owns:
 
 ```text
 source
@@ -1459,45 +1268,79 @@ GHCR
 scheduled audits
 ```
 
-monkeyOS does not mirror this information into another database.
+monkeyOS does not mirror this into another database.
 
 ---
 
-# 36. Infrastructure Provisioning with Terraform
+# 36. Cloud-Native Infrastructure Provisioning
 
-All infrastructure provisioning is contained in:
-
-```text
-<organization>/monkeyos-platform
-```
-
-Terraform owns the **infrastructure lifecycle**:
+All infrastructure definitions live under:
 
 ```text
-network
-subnet
-routing
-firewall / security rules
-runtime hosts
-host bootstrap
-infrastructure state
+<organization>/monkeyos-platform/infrastructure/
 ```
 
-Kamal owns the **application lifecycle**.
+V1 deliberately uses the cloud provider's native declarative infrastructure tooling rather than forcing one cross-cloud state system.
 
-A normal application deployment never runs Terraform.
-
-### Supported clouds
-
-V1 supports:
+The structure is intentionally simple:
 
 ```text
-AWS
-Azure
-GCP
+monkeyos-platform/
+└── infrastructure/
+    ├── aws/
+    ├── azure/
+    └── gcp/
 ```
 
-Each provider uses native infrastructure primitives while exposing the same logical monkeyOS runtime contract:
+Each provider folder defines one standard production runtime pool.
+
+## AWS
+
+Use **CloudFormation**.
+
+For example:
+
+```text
+infrastructure/aws/
+└── template.yaml
+```
+
+CloudFormation manages the stack through AWS's own control plane.
+
+No monkeyOS-managed Terraform state is required.
+
+## Azure
+
+Use **Bicep / ARM**.
+
+For example:
+
+```text
+infrastructure/azure/
+└── main.bicep
+```
+
+Azure Resource Manager owns the deployment/resource state.
+
+No separate state file is required.
+
+## GCP
+
+Use the simplest supported declarative GCP IaC mechanism that preserves the same monkeyOS runtime contract.
+
+Where appropriate, use Google Cloud's managed infrastructure tooling rather than introducing a monkeyOS-owned state backend.
+
+The implementation detail may differ from AWS/Azure.
+
+The important rule is:
+
+> **Cloud-specific infrastructure code may differ; the resulting runtime contract must remain the same.**
+
+---
+
+## 36.1 Runtime Contract
+
+Every provider implementation must produce:
 
 ```text
 production/default
@@ -1505,35 +1348,24 @@ production/default
 └── app-prod-02
 ```
 
-Each host is Linux, Docker-capable, reachable by trusted deployment, capable of reaching Supabase/external services, and capable of receiving approved application traffic.
+Each host must be:
+
+```text
+Linux
+Docker-capable
+reachable by trusted deployment
+able to reach Supabase
+able to reach configured external services
+able to receive approved application traffic
+```
 
 > **Compute portability comes from a stable runtime contract, not from pretending AWS, Azure, and GCP are identical.**
 
-### Repository structure
+---
 
-Conceptually:
+## 36.2 Dedicated Runtime Network
 
-```text
-monkeyos-platform/
-└── terraform/
-    ├── modules/
-    │   └── app-server-pool/
-    │       ├── aws/
-    │       ├── azure/
-    │       └── gcp/
-    │
-    └── environments/
-        └── production/
-            ├── aws/
-            ├── azure/
-            └── gcp/
-```
-
-Provider implementations remain separate rather than creating an over-engineered universal cloud abstraction.
-
-### Dedicated runtime network
-
-Terraform provisions:
+Each provider definition provisions the complete runtime foundation:
 
 ```text
 monkeyOS production network
@@ -1555,17 +1387,51 @@ V1 intentionally uses:
 
 No per-app subnets, Kubernetes, service mesh, complex peering, or multi-tier orchestration are required.
 
-### Provider implementations
+---
 
-AWS uses native VPC/subnet/routing/security-group/EC2 primitives.
+## 36.3 Native Provider Resources
 
-Azure uses native VNet/subnet/routing/NSG/NIC/VM primitives.
+AWS CloudFormation should create the required native resources such as:
 
-GCP uses native VPC/subnet/routing/firewall/Compute Engine primitives.
+```text
+VPC
+subnet
+route table
+Internet Gateway / egress
+security groups
+EC2 instances
+SSH/bootstrap configuration
+```
 
-They need not be internally identical; they must produce the same runtime contract.
+Azure Bicep should create:
 
-### Network policy
+```text
+VNet
+subnet
+routing
+Network Security Group
+NICs / public IPs where required
+Linux VMs
+SSH/bootstrap configuration
+```
+
+GCP should use its native equivalents:
+
+```text
+VPC
+subnet
+routing / egress
+firewall rules
+Compute Engine
+external/static IPs where required
+SSH/bootstrap configuration
+```
+
+The source definitions do not need to look identical.
+
+---
+
+## 36.4 Network Policy
 
 Runtime hosts receive only necessary connectivity:
 
@@ -1574,51 +1440,68 @@ inbound application traffic
 inbound trusted deployment SSH
 outbound GHCR/image access
 outbound Supabase access
-outbound configured shared/external database access
+outbound configured external/shared database access
 outbound required external services
 OS/package updates
 ```
 
 Everything else should be denied or avoided by default.
 
-### Inputs & outputs
+---
 
-Provider implementations expose roughly consistent inputs:
+## 36.5 Infrastructure State
 
-```text
-region
-instance size/type
-instance count       # default 2
-SSH public key
-network CIDR
-subnet CIDR
-allowed ingress
-tags / labels
-```
+monkeyOS does **not** maintain its own infrastructure-state database or state files.
 
-Outputs include:
+Infrastructure state is owned by the cloud provider's control plane wherever practical:
 
 ```text
-runtime hosts
-network ID
-subnet ID
-public/origin addresses
-region
+AWS
+→ CloudFormation stack state
+
+Azure
+→ Azure Resource Manager deployment/resource state
+
+GCP
+→ provider-native / managed IaC state
 ```
 
-Provisioning uses the host output to establish shared platform configuration such as:
+The principle is:
+
+> **Use the cloud provider as the source of truth for infrastructure whenever possible.**
+
+This keeps monkeyOS from introducing another state system solely for a very small, rarely changing runtime footprint.
+
+---
+
+## 36.6 Infrastructure Lifecycle
+
+Infrastructure changes are intentionally infrequent:
 
 ```text
-PROD_DEFAULT_HOSTS
+initial provisioning
+host resize
+host replacement
+network/security changes
 ```
 
-### Terraform state
+Application changes are frequent.
 
-Terraform state remains in an appropriate remote Terraform backend.
+Therefore:
 
-It does not live in Supabase or a monkeyOS database.
+```text
+cloud-native IaC
+→ infrastructure lifecycle
 
-### Availability & vertical scaling
+Kamal
+→ application lifecycle
+```
+
+A normal app deployment never executes CloudFormation, Bicep, or other infrastructure provisioning.
+
+---
+
+## 36.7 Availability & Vertical Scaling
 
 Infrastructure maintenance happens one host at a time:
 
@@ -1815,7 +1698,7 @@ Application code
 → one typed configuration wrapper
 ```
 
-Developers should not manage production secret values.
+Developers do not manage production secret values.
 
 The Platform Team may provide authorized development credentials for external/shared services when required.
 
@@ -1934,15 +1817,15 @@ A monkeyOS organization installation provides:
 ✓ Pi configuration
 ✓ application provisioning tooling
 
-✓ AWS Terraform
-✓ Azure Terraform
-✓ GCP Terraform
+✓ AWS CloudFormation
+✓ Azure Bicep
+✓ GCP provider-native/managed declarative IaC
 ✓ dedicated runtime network
 ✓ application subnet
 ✓ firewall/security rules
 ✓ two-host HA pool
 ✓ Docker-ready Linux hosts
-✓ Terraform remote state
+✓ no monkeyOS-managed infrastructure state backend
 
 ✓ Cloudflare wildcard ingress
 ✓ shared Supabase environment
@@ -1984,7 +1867,7 @@ grant Contributors access
 ready
 ```
 
-No Terraform change is normally required for a new application.
+No infrastructure change is normally required for a new application.
 
 After this, application development is self-service.
 
@@ -2007,9 +1890,10 @@ After this, application development is self-service.
  ├── workflows                         Supabase
  ├── skills                            Cloudflare
  ├── provisioning                      GitHub
- └── terraform
-        │
-   AWS / Azure / GCP
+ └── infrastructure/
+       ├── aws/       → CloudFormation
+       ├── azure/     → Bicep
+       └── gcp/       → native/managed IaC
         │
         ▼
  dedicated runtime network
@@ -2141,11 +2025,13 @@ Data architecture:
 
 > **`main` is source; production is an explicit, authorized promotion of an immutable tested artifact.**
 
-> **Terraform owns the infrastructure lifecycle; Kamal owns the application lifecycle.**
+> **Use provider-native declarative infrastructure tooling where practical: CloudFormation on AWS, Bicep on Azure, and native/managed declarative IaC on GCP.**
 
-> **Terraform provisions the entire runtime foundation—network, security, and hosts—not merely VMs.**
+> **Infrastructure state should remain with the cloud provider control plane wherever possible rather than introducing a monkeyOS-owned state backend.**
 
-> **AWS, Azure, and GCP use their native primitives but expose the same small monkeyOS runtime contract.**
+> **The provider implementations may differ; the monkeyOS runtime contract remains the same.**
+
+> **Infrastructure provisioning owns the runtime foundation; Kamal owns the application lifecycle.**
 
 > **The runtime is a small HA cell of interchangeable hosts, not a scheduler. Scale vertically before adding orchestration complexity.**
 

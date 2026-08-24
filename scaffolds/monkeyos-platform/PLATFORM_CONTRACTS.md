@@ -19,7 +19,7 @@ This checklist is normative for the `v1` compatibility channel.
 - [x] Every provider yields one configurable dedicated network, one app subnet, and a configurable positive number of interchangeable architecture-matched Docker hosts with configurable image, compute, and volume inputs.
 - [x] A wildcard Cloudflare Load Balancer fronts the same protected `RUNTIME_HOST` pool; every standard app runs on every configured host.
 - [x] `RUNTIME_ARCH` selects `arm64` by default or `amd64` for AMD/Intel x86-64 and drives provider defaults, CI, deployment verification, Kamal, and provisioned app configuration.
-- [x] Applications use standard React Router Framework Mode with its CLI forced onto Bun, the generated Web Streams server build, and a thin `Bun.serve`/`createRequestHandler` adapter; app repositories do not own parallel browser entries, dev proxy/orchestration, application middleware, or custom bundling systems.
+- [x] Applications use standard React Router Framework Mode files and package scripts. Project-level Bun configuration selects the runtime, and production serves the generated build through a small Bun adapter.
 - [x] CI and containers use latest stable Bun as the only JavaScript runtime, package manager, application server, and test runner; compatible package/action/base-image releases move through semver ranges, moving tags, lockfiles, and Dependabot.
 - [x] Cloud IaC owns infrequent host/network lifecycle; Kamal owns frequent application lifecycle.
 - [x] Application-owned data is local-first; external/shared dependencies are declared, least-privilege, and read-only by default.

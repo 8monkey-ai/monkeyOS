@@ -1,4 +1,4 @@
-const status = Bun.spawnSync(["bunx", "supabase", "status", "-o", "env"]);
+const status = Bun.spawnSync(["supabase", "status", "-o", "env"]);
 if (status.exitCode !== 0) throw new Error("Local Supabase must be running before browser tests");
 const values = Object.fromEntries(
   status.stdout

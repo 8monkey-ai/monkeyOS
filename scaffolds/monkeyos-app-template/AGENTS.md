@@ -10,7 +10,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 - Strict TypeScript, React 19 with React Compiler, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, oxfmt/oxlint, Bun test, and Playwright.
 - Keep dependencies on compatible semver ranges and commit `bun.lock`. Let Dependabot refresh compatible dependency and action versions; do not hard-code patch versions in scripts or workflows.
 - Prefer SOLID, cohesive modules and direct code. Add abstractions only when they remove demonstrated duplication or enforce a real boundary.
-- Keep framework plumbing standard: force the React Router dev/build/typegen CLI onto Bun, retain `src/root.tsx`, `src/routes.ts`, route modules, and the generated Web Streams server build. `server.ts` may only serve generated assets and delegate to `createRequestHandler`; do not add application middleware, a browser entry, dev proxy/orchestrator, or custom Vite chunking.
+- Keep the React Router project conventional: standard package scripts, root, route modules, type generation, and Vite configuration. Do not add a parallel browser entry, development orchestrator, or custom bundling scheme.
 
 ## UI and state
 

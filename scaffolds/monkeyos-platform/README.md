@@ -62,7 +62,7 @@ Real application modules keep routine Supabase server state behind typed TanStac
 
 Application UI uses official shadcn/ui registry code as its primary component system. Initialize it through `shadcn@latest` with the Base UI preset and add standard components—including the sidebar shell—through the CLI. Keep generated registry primitives in `src/components/ui/`, compose them in application components, and treat hand-written approximations of available registry components as an audit failure.
 
-Application delivery uses standard React Router Framework Mode: route modules, framework root/type generation, the dev/build CLI forced onto Bun, the generated Web Streams server build, and a thin `Bun.serve`/`createRequestHandler` adapter. App repositories do not own a parallel browser bootstrap, dev proxy/orchestrator, application middleware stack, or custom bundling scheme. Bun is the sole JavaScript runtime, package manager, application server, and test runner.
+Application delivery uses standard React Router Framework Mode files and package scripts. Project-level `bunfig.toml` selects Bun for package CLIs, and a small Bun production adapter serves the framework-generated build. Bun is the JavaScript runtime, package manager, application server, and test runner.
 
 ## Operations
 

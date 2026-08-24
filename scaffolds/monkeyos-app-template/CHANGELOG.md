@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0
+
+- Restored ordinary React Router package scripts and isolated the current Bun development-condition workaround to the `dev` command.
+- Moved Bun runtime selection into the standard project-level `bunfig.toml` configuration.
+- Removed workaround-specific framework rules and exact internal CLI paths from the scaffold contracts and audits.
+
 ## 2.2.0
 
 - Made Bun the only JavaScript runtime across React Router development, type generation, builds, tests, production serving, and containers.

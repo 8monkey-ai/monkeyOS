@@ -56,9 +56,9 @@ shadcn/ui is the primary component and layout system. `components.json` is initi
 
 ## Framework conventions
 
-This is a standard React Router Framework Mode application. Its dev/build/typegen CLI is forced onto Bun and retains the normal `src/root.tsx`, `src/routes.ts`, route modules, generated Web Streams server build, and Vite lifecycle. Vite contains only the React Router, Tailwind, and officially documented React Compiler plugins. The small `server.ts` serves generated assets and delegates every application request to React Router's standard request handler; there is no application-owned browser bootstrap, proxy, chunking scheme, dual-process development server, or custom application middleware.
+This is a standard React Router Framework Mode application. Its scripts use the ordinary React Router commands, with the usual root, route modules, type generation, and Vite lifecycle. `bunfig.toml` makes Bun the runtime for package CLIs. The `dev` script supplies Bun's `development` export condition to work around React Router's current non-Node restart bug; it adds no wrapper or custom development server. Vite adds only the required Tailwind and React Compiler plugins. Production uses a small Bun adapter for the framework-generated build.
 
-Use the latest stable Bun as the only JavaScript runtime, package manager, application server, and test runner. No Node executable, direct Node adapter dependency, or Node container base is required. Compatible package ranges are declared in `package.json`, exact tested resolutions remain in `bun.lock`, and Dependabot keeps Bun packages, the moving Bun container base, and GitHub Actions current without patch constants scattered through scripts.
+Use the latest stable Bun as the JavaScript runtime, package manager, application server, and test runner. Compatible package ranges are declared in `package.json`, exact tested resolutions remain in `bun.lock`, and Dependabot keeps packages, the moving Bun container base, and GitHub Actions current.
 
 ## Deploy
 

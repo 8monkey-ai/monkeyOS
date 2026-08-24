@@ -35,6 +35,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "components.json",
     "package.json",
     "bun.lock",
+    "bunfig.toml",
     "Dockerfile",
     "server.ts",
     "react-router.config.ts",
@@ -84,13 +85,14 @@ export async function auditRepository(root: string): Promise<Finding[]> {
       findings.push({ level: "BLOCKING", message: "shadcn must use the CLI Base UI nova preset" });
     }
   }
-  if (packageJson.scripts?.["ui:add"] !== "bunx --bun shadcn@latest add") {
+  if (packageJson.scripts?.["ui:add"] !== "shadcn add") {
     findings.push({ level: "BLOCKING", message: "ui:add must invoke the official shadcn CLI" });
   }
   for (const [script, command] of Object.entries({
-    dev: "bun --conditions=development ./node_modules/@react-router/dev/bin.cjs dev",
-    build: "bun ./node_modules/@react-router/dev/bin.cjs build",
+    dev: "BUN_OPTIONS=--conditions=development react-router dev",
+    build: "react-router build",
     start: "bun server.ts",
+    typecheck: "react-router typegen && tsc --noEmit",
   })) {
     if (packageJson.scripts?.[script] !== command) {
       findings.push({
@@ -99,16 +101,9 @@ export async function auditRepository(root: string): Promise<Finding[]> {
       });
     }
   }
-  if (!packageJson.scripts?.typecheck?.includes("@react-router/dev/bin.cjs typegen")) {
-    findings.push({ level: "BLOCKING", message: "typecheck must generate React Router types" });
-  }
-  for (const dependency of ["@react-router/node", "@react-router/serve", "@types/node"]) {
-    if (packageJson.dependencies?.[dependency] || packageJson.devDependencies?.[dependency]) {
-      findings.push({
-        level: "BLOCKING",
-        message: `Direct Node dependency is forbidden: ${dependency}`,
-      });
-    }
+  const bunfig = await readFile(join(root, "bunfig.toml"), "utf8");
+  if (!/^\[run\]\s*$[\s\S]*^bun\s*=\s*true\s*$/m.test(bunfig)) {
+    findings.push({ level: "BLOCKING", message: "bunfig.toml must run package CLIs with Bun" });
   }
   for (const legacy of [
     "index.html",

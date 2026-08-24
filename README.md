@@ -619,6 +619,28 @@ surface contradictions or missing decisions
 update the contract, tests, and CHANGELOG when behavior changes
 ```
 
+## Process Evolution & Current Authority
+
+Business skills are living definitions of the current authoritative process. They are not an accumulating archive of every process version.
+
+Before creating a business skill, the agent must search `BUSINESS.md` and the existing `business/skills/` tree.
+
+The rules are:
+
+- if an existing process or module is changing, update its existing skill in place
+- create a new skill only for a genuinely new, independently bounded process or module
+- do not create parallel variants such as `returns-v2`, `returns-new`, or date-suffixed copies to avoid updating the authoritative skill
+- when a process is split, merged, renamed, or retired, update `BUSINESS.md` routing, affected references, and superseded skills in the same change
+- ensure there is one clear authoritative instruction path for each current process
+- update affected tests and the CHANGELOG together with the business skill and implementation
+- leave no active skill or reference describing behavior that the application no longer follows
+
+Git preserves historical process versions. The Business Application Contract system preserves current business truth.
+
+Repository audits should detect business skills that are unreferenced, overlapping, contradictory, stale, or duplicated.
+
+> **Business process evolution updates the existing authoritative skill. New skills represent new processes or modules, not new versions of existing ones.**
+
 Business rules must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
 
 An application never relies on `BUSINESS.md` alone for process knowledge. Even a simple application starts with at least one business skill covering its initial process or module. New processes and modules receive their own skills when they are introduced.
@@ -1283,7 +1305,11 @@ classify change
 ↓
 load relevant business skills
 ↓
-update BUSINESS.md / business skills where business behavior changed
+locate the authoritative existing process/module skill
+↓
+update it in place, or create a skill only for a genuinely new process/module
+↓
+update BUSINESS.md routing if the process/module structure changed
 ↓
 update CHANGELOG/version where appropriate
 ↓
@@ -1849,6 +1875,8 @@ They ask:
 
 They check dependencies, authentication, authorization, external access, RLS, audit coverage, data ownership, PII, local and production secret handling, frontend/API security, containers, GitHub Actions, deployment, and missing important tests.
 
+Repository audits also check that every process/module is routed from `BUSINESS.md` and that business skills are not unreferenced, overlapping, contradictory, stale, or duplicated as process versions.
+
 The objective is material risk reduction, not style-only churn.
 
 ---
@@ -2121,6 +2149,8 @@ Data architecture:
 > **Changes that matter to the business are audited by the application that owns them.**
 
 > **Every application has an application-owned Business Application Contract system: `BUSINESS.md` contains the overall purpose and business map, while every process or module is defined in its own business skill from the beginning.**
+
+> **Business skills describe current authoritative processes. Existing processes are updated in place; Git preserves history, and new skills are created only for genuinely new processes or modules.**
 
 > **Own locally. Discover globally. Share explicitly.**
 

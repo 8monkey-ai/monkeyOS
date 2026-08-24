@@ -1,6 +1,6 @@
 # monkeyOS
 
-## Overall Approach & Architecture — Canonical V1
+## Overall Approach & Architecture
 
 ## 1. Objective
 
@@ -31,6 +31,7 @@ Cloudflare → DNS, TLS, CDN, load balancing
 Terraform  → runtime infrastructure
 Kamal      → application deployment
 Pi         → AI execution inside GitHub Actions
+Bun        → local runtime, tooling and secure local secret access
 ```
 
 The underlying compute is portable across AWS, Azure, and GCP.
@@ -92,11 +93,6 @@ A standard application repository looks approximately like:
 ```text
 finance/
 ├── README.md
-├── BUSINESS.md
-├── business/
-│   └── skills/
-│       └── <process-or-module>/
-│           └── SKILL.md
 ├── CHANGELOG.md
 ├── AGENTS.md
 ├── package.json
@@ -260,7 +256,7 @@ monkeyOS separates **application development**, **production promotion**, and **
 
 ### Contributor
 
-A Contributor can develop the application:
+A Contributor can:
 
 ```text
 clone
@@ -345,16 +341,6 @@ production
 
 A Contributor or coding agent can request deployment without having permission to authorize it.
 
-For example:
-
-```text
-"deploy production"
-↓
-deployment requested
-↓
-awaiting authorized approval
-```
-
 For less sensitive applications, the same person may be both Contributor and Deployer.
 
 For sensitive applications, Deployer membership can be much narrower.
@@ -399,19 +385,7 @@ jobs:
 
 The same pattern applies to CI, deployment, repository audits, and AI-powered workflows.
 
-This means improvements such as:
-
-```text
-new security scanner
-better CI
-dependency changes
-Kamal improvements
-deployment hardening
-Pi updates
-better repository audits
-```
-
-can propagate without editing every app.
+This allows improvements such as new security scanners, CI changes, Kamal hardening, Pi updates, or audit improvements to propagate without editing every app.
 
 Applications consume central workflows through a protected compatibility channel:
 
@@ -488,7 +462,7 @@ They synchronize into:
 .monkeyos/skills/
 ```
 
-The mechanism should remain deliberately simple: centrally managed plain files synchronized into application repositories.
+The mechanism remains deliberately simple: centrally managed plain files synchronized into application repositories.
 
 ---
 
@@ -513,8 +487,6 @@ One platform rule is sufficient:
 
 > **monkeyOS-managed files must not be modified as normal application code.**
 
-For any change that affects business behavior, the agent reads `BUSINESS.md` and loads the relevant application-owned business skills before making the change.
-
 ---
 
 # 14. README Is the Application Front Door
@@ -530,10 +502,9 @@ It explains:
 - common monkeyOS commands
 - login/access behavior
 - data ownership
-- external data dependencies
+- external/shared data dependencies
 - user-level deployment flow
 - current application version
-- where to find the Business Application Contract system and domain skills
 
 Getting started should be approximately:
 
@@ -544,116 +515,13 @@ Getting started should be approximately:
 4. Ask: "start app"
 ```
 
-Before that, the Platform Team only needs to:
+Before that, the Platform Team only needs to create/provision the GitHub repository and database setup.
 
-> **Create/provision the GitHub repository and its database schema.**
-
-Afterwards, normal development is self-service.
+If the app requires development credentials for shared/external systems, the README lists **which secret names are required**, but never their values.
 
 ---
 
-# 15. Business Application Contract System
-
-A single business document is not enough for a complex operational application.
-
-Every application therefore owns a layered Business Application Contract system:
-
-```text
-BUSINESS.md
-business/
-└── skills/
-    ├── <business-domain>/
-    │   ├── SKILL.md
-    │   └── references/
-    └── <business-process>/
-        ├── SKILL.md
-        └── references/
-```
-
-For example:
-
-```text
-BUSINESS.md
-business/
-└── skills/
-    ├── work-order-lifecycle/
-    ├── commissions/
-    ├── inventory-costing/
-    ├── warranty-handoffs/
-    └── customer-data-retention/
-```
-
-These are application-owned business instructions. They are separate from centrally synchronized `.monkeyos/skills/`, which define shared platform and engineering workflows.
-
-## `BUSINESS.md` — Business Front Door
-
-`BUSINESS.md` contains the application's overall business purpose and acts as the routing layer for its detailed business skills. It is not a detailed process specification.
-
-It answers:
-
-> **What business does this application support, which rules must it preserve, and where is the detailed domain guidance?**
-
-It remains concise and records:
-
-- application purpose, users, scope, and explicit out-of-scope boundaries
-- named business, process, and data owners, including decision rights
-- shared vocabulary, key entities, and authoritative identifiers
-- application-wide business invariants
-- an index of every business process and module, linked to its business skill
-- a routing table describing which business skills apply to which changes
-- the priority of business rules when sources appear to conflict
-- application-level open decisions and assumptions requiring confirmation
-
-Detailed workflows, permissions, calculations, record rules, integrations, and exceptions do not belong in `BUSINESS.md`. They live in the relevant process or module skill.
-
-## Application Business Skills
-
-Every business process or module has its own skill from the beginning. Each skill covers one bounded capability, policy, or operational process.
-
-Its `SKILL.md` defines:
-
-- when the skill must be used
-- purpose, scope, actors, roles, and operational permissions
-- workflows, states, allowed transitions, handoffs, deadlines, and exception paths
-- approval, separation-of-duty, correction, cancellation, reopening, and terminal-record rules
-- master/reference-data ownership and change rules
-- calculations, KPI definitions, rounding rules, and effective dates
-- record classification, retention, archival, anonymization, audit, and export requirements
-- external-system ownership, source-of-truth boundaries, reconciliation, and failure handling
-- operating constraints such as sites, shared devices, peripherals, languages, time zones, and manual fallback
-- acceptance scenarios and references needed to preserve the business behavior
-
-A skill may keep supporting material in its own `references/` folder so agents load detailed knowledge only when the task requires it.
-
-## Agent Behavior
-
-For any change that may affect business behavior, the coding agent must:
-
-```text
-read BUSINESS.md
-↓
-identify affected business domains/processes
-↓
-load every relevant business skill
-↓
-preserve documented invariants
-↓
-surface contradictions or missing decisions
-↓
-update the contract, tests, and CHANGELOG when behavior changes
-```
-
-Business rules must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
-
-An application never relies on `BUSINESS.md` alone for process knowledge. Even a simple application starts with at least one business skill covering its initial process or module. New processes and modules receive their own skills when they are introduced.
-
-The README links to `BUSINESS.md`, and `AGENTS.md` instructs agents to load the relevant business skills before changing business behavior.
-
-> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` states the overall purpose and routes agents, while every business process or module has its own skill from the beginning.**
-
----
-
-# 16. CHANGELOG & Versioning
+# 15. CHANGELOG & Versioning
 
 Every application contains:
 
@@ -661,9 +529,9 @@ Every application contains:
 CHANGELOG.md
 ```
 
-The coding agent automatically maintains it.
+The coding agent maintains it automatically.
 
-It records meaningful user/business changes rather than implementation trivia:
+It records meaningful business/user changes rather than implementation trivia:
 
 ```markdown
 ## 1.4.0
@@ -687,7 +555,7 @@ The canonical version lives in `package.json`.
 
 CI validates changelog/version consistency.
 
-Production can identify:
+Production can identify both:
 
 ```text
 Version   1.6.2
@@ -698,7 +566,7 @@ The Git SHA remains the immutable technical deployment identity.
 
 ---
 
-# 17. Authentication & Application Access
+# 16. Authentication & Application Access
 
 Every application starts with working authentication:
 
@@ -761,7 +629,7 @@ Normal browser code cannot browse `auth.users`.
 
 ---
 
-# 18. Authorization Is Enforced by RLS
+# 17. Authorization Is Enforced by RLS
 
 Application access is enforced at the database layer:
 
@@ -780,7 +648,7 @@ Hiding UI elements is never considered sufficient authorization.
 
 ---
 
-# 19. Business Audit Trails
+# 18. Business Audit Trails
 
 Every application owns its own business audit history:
 
@@ -819,7 +687,7 @@ The mechanism should remain simple rather than becoming an event-sourcing framew
 
 ---
 
-# 20. Data Architecture & Governance
+# 19. Data Architecture & Governance
 
 The governing principle is:
 
@@ -868,7 +736,7 @@ hr.*           → metadata only
 ops.*          → metadata only
 ```
 
-Metadata comes from PostgreSQL's actual catalogs rather than a manually maintained monkeyOS data catalog.
+Metadata comes from PostgreSQL's actual catalogs rather than a manually maintained monkeyOS catalog.
 
 ### Share explicitly
 
@@ -886,7 +754,307 @@ Cross-domain writes use explicit operations controlled by the source domain rath
 
 ---
 
-# 21. Supabase & Database Security
+# 20. Shared and External Databases
+
+Applications may also need to consume databases that are **not owned by the app**, including:
+
+```text
+shared reporting databases
+data warehouses
+legacy systems
+ERP databases
+vendor-managed databases
+partner systems
+other external databases
+```
+
+These are treated as explicit external dependencies.
+
+The default contract is:
+
+> **Application-owned data is read/write. Shared or external databases are read-only unless there is a deliberate exception.**
+
+For example:
+
+```text
+finance app
+├── finance schema
+│   → read/write
+│
+├── reporting database
+│   → read-only
+│
+└── ERP database
+    → read-only
+```
+
+Read-only access should be enforced by the source database or external system wherever technically possible, rather than relying on application behavior.
+
+The application must not run migrations or attempt to take ownership of these databases.
+
+---
+
+# 21. External Data Sources in Development
+
+monkeyOS guarantees reproducibility for **application-owned state**.
+
+It does **not** require a local clone or development equivalent of every external database.
+
+That would be unrealistic for systems that may be:
+
+- large
+- legacy
+- vendor-managed
+- shared across many applications
+- outside the organization's control
+
+Therefore local development may look like:
+
+```text
+Local application
+├── local Supabase
+│   → app-owned state
+│
+├── shared reporting DB
+│   → remote, read-only
+│
+└── external ERP
+    → remote, read-only
+```
+
+The same external source may sometimes be used by both development and production if no separate environment exists and the security/privacy model permits it.
+
+The rule is:
+
+> **Own data is local-first. External systems remain external and may be accessed remotely during development with least-privilege credentials.**
+
+Production data from the application's own schema is still never the normal local-development source.
+
+---
+
+# 22. External Data Dependencies Are Explicit
+
+Each app's README should state which external/shared data sources it consumes and what they are used for.
+
+The application may also maintain a lightweight, non-secret declaration of required connection names, for example:
+
+```text
+ERP_DATABASE_URL
+REPORTING_DATABASE_URL
+```
+
+This declaration exists to support:
+
+```text
+documentation
+startup validation
+tests
+agent understanding
+provisioning
+```
+
+It is **not** a monkeyOS registry and contains no secret values.
+
+---
+
+# 23. Development vs Production Secrets
+
+monkeyOS deliberately separates development and production credentials.
+
+```text
+DEVELOPMENT
+→ credentials available to authorized developer
+→ stored locally using Bun.secrets
+
+PRODUCTION
+→ GitHub production environment secrets
+→ never distributed to developer
+```
+
+For example:
+
+```text
+Development
+ERP_DATABASE_URL
+REPORTING_DATABASE_URL
+→ Bun.secrets
+
+Production
+ERP_DATABASE_URL
+REPORTING_DATABASE_URL
+→ GitHub production environment
+```
+
+A developer may need a read-only development credential for a shared or external database.
+
+The Platform Team provides that credential to the developer once through an appropriate secure channel.
+
+The developer stores it locally using the monkeyOS `add secret` flow.
+
+Production credentials are never provided to developers.
+
+---
+
+# 24. Bun.secrets for Local Secret Storage
+
+Sensitive local development credentials are stored through **Bun.secrets**, using the operating system's secure credential storage rather than plaintext `.env` files.
+
+Conceptually:
+
+```text
+Platform Team
+↓
+development credential
+↓
+add development secret
+↓
+Bun.secrets
+↓
+OS credential store
+```
+
+Secrets should be namespaced by organization and repository so that applications do not collide.
+
+Conceptually:
+
+```text
+monkeyOS:<organization>/<repository>
+
+ERP_DATABASE_URL
+REPORTING_DATABASE_URL
+```
+
+The developer experience should be:
+
+```text
+Missing development secret: ERP_DATABASE_URL
+
+Ask the Platform Team for the development credential, then run:
+
+add development secret ERP_DATABASE_URL
+```
+
+The command securely prompts for the value and stores it without:
+
+```text
+printing it
+putting it into Git
+putting it into shell history
+putting it into README/AGENTS.md
+```
+
+---
+
+# 25. One Typed Configuration Wrapper
+
+Application code should **not** call Bun.secrets directly throughout the codebase.
+
+monkeyOS provides a small typed configuration wrapper.
+
+Conceptually:
+
+```text
+Development
+Bun.secrets
+      ↓
+
+Production
+process environment
+      ↓
+
+Tests
+explicit test configuration
+      ↓
+      └────→ one typed config layer
+                    ↓
+             application code
+```
+
+Application code simply consumes something like:
+
+```text
+config.ERP_DATABASE_URL
+config.REPORTING_DATABASE_URL
+```
+
+The wrapper resolves the value according to environment:
+
+```text
+development → Bun.secrets
+production  → process environment
+tests       → explicit test values
+```
+
+Zod validates the resolved configuration at startup.
+
+The application should fail fast with a useful error if a required value is missing or malformed.
+
+This keeps business code independent of secret-storage mechanics.
+
+---
+
+# 26. Secret Classification
+
+Not every configuration value is a secret.
+
+The convention is:
+
+```text
+Non-sensitive configuration
+→ normal environment/config values
+
+Sensitive local development values
+→ Bun.secrets
+
+Sensitive production values
+→ GitHub production environment secrets
+```
+
+Examples of non-sensitive organization configuration may include:
+
+```text
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+APPS_BASE_DOMAIN
+```
+
+depending on the specific service semantics.
+
+Secrets include database passwords, private API keys, tokens, and equivalent credentials.
+
+---
+
+# 27. Shared Database Security Rules
+
+Shared/external database access should follow these defaults:
+
+```text
+read-only by default
+least privilege
+only required databases/schemas/tables where possible
+no DDL
+no migrations
+no ownership
+separate development and production credentials where possible
+```
+
+Where a source system supports individual identities, SSO, or short-lived authentication, prefer those.
+
+Where it only supports a shared database account, create the narrowest app/development-specific read-only account practical.
+
+For example:
+
+```text
+finance_dev_reporting_ro
+```
+
+rather than one organization-wide unrestricted credential.
+
+External/shared database access is a dependency, not ownership.
+
+---
+
+# 28. Supabase & Database Security
 
 One Supabase project represents the shared production environment/trust boundary rather than one application.
 
@@ -936,7 +1104,7 @@ No ORM.
 
 ---
 
-# 22. Local Development & Test Data
+# 29. Local Development & Test Data
 
 Local development requires approximately:
 
@@ -951,7 +1119,7 @@ Docker-compatible runtime
 
 It does not require Terraform, Kamal, cloud CLIs, production SSH, production database credentials, or Cloudflare tooling.
 
-Each app runs against local Supabase:
+Each app runs its **own state** against local Supabase:
 
 ```text
 Application
@@ -963,11 +1131,11 @@ Local Supabase
     └── synthetic test data
 ```
 
-Every application must be fully usable locally without production data.
+Every application must be usable locally without production data from its own domain.
 
 ### Baseline seed
 
-Each repository contains deterministic baseline data, typically through:
+Each repository contains deterministic baseline data, typically via:
 
 ```text
 supabase/seed.sql
@@ -997,34 +1165,17 @@ nonmember@example.local
 
 ### Test fixtures
 
-Automated tests may create separate scenario-specific fixtures:
+Automated tests may create separate scenario-specific fixtures.
 
-```text
-Bun tests
-→ targeted fixtures
+### External-source tests
 
-Playwright
-→ E2E setup/reset
-```
+Where an external source is remote and cannot reasonably be reproduced locally, automated tests should isolate application behavior using the narrowest practical contract/fixture rather than cloning the entire external database.
 
-### Data ownership still applies locally
-
-```text
-finance test data → finance schema
-hr test data      → hr schema
-```
-
-If an app consumes a cross-domain contract, local development provides a representative version of that contract rather than copying the source domain's entire model.
-
-Production snapshots are not copied locally by default.
-
-Any exceptional production-like dataset must be sanitized, appropriately anonymized, minimized, and free of production secrets.
-
-Local state is disposable and reproducible.
+The purpose is to test monkeyOS application behavior, not recreate third-party infrastructure.
 
 ---
 
-# 23. `start app`
+# 30. `start app`
 
 The central `start` skill performs approximately:
 
@@ -1034,6 +1185,8 @@ check tools
 sync monkeyOS skills
 ↓
 bun install
+↓
+validate required local secrets
 ↓
 start local Supabase
 ↓
@@ -1045,18 +1198,31 @@ seed memberships
 ↓
 seed representative business data
 ↓
+validate configured external/shared connections
+↓
 generate database types
 ↓
 start application
 ↓
-report local URL + test users
+report local URL + test users + dependency status
 ```
 
-The result should be a working application immediately.
+For example:
+
+```text
+✓ Local Supabase ready
+✓ Reporting database available
+✓ ERP database available
+✓ Application started
+
+App: http://localhost:5173
+```
+
+Secret values are never displayed.
 
 ---
 
-# 24. Standard Application Stack
+# 31. Standard Application Stack
 
 ```text
 Runtime/package manager  Bun
@@ -1102,7 +1268,7 @@ No central monkeyOS UI component framework.
 
 ---
 
-# 25. Engineering & Review Philosophy
+# 32. Engineering & Review Philosophy
 
 The engineering standard is:
 
@@ -1148,7 +1314,7 @@ quality gate
 commit
 ```
 
-Review findings are classified as:
+Review findings are:
 
 ```text
 BLOCKING
@@ -1158,11 +1324,31 @@ SUGGESTION
 
 No commit proceeds with blocking findings.
 
-Security review covers authentication, authorization, RLS, schema boundaries, cross-domain access, audit coverage, PII, test-data privacy, validation, injection, secrets, dependencies, frontend security, uploads, and container security.
+Security review includes:
+
+```text
+authentication
+authorization
+membership
+RLS
+schema boundaries
+cross-domain access
+external database access
+audit coverage
+PII
+test-data privacy
+local secret handling
+production secret isolation
+validation
+injection
+dependencies
+frontend security
+container security
+```
 
 ---
 
-# 26. `commit`
+# 33. `commit`
 
 The central `commit` skill performs:
 
@@ -1170,10 +1356,6 @@ The central `commit` skill performs:
 inspect change
 ↓
 classify change
-↓
-load relevant business skills
-↓
-update BUSINESS.md / business skills where business behavior changed
 ↓
 update CHANGELOG/version where appropriate
 ↓
@@ -1206,7 +1388,7 @@ This makes quality review part of the development loop rather than something tha
 
 ---
 
-# 27. Continuous Integration
+# 34. Continuous Integration
 
 Application CI is a thin caller to central monkeyOS CI.
 
@@ -1229,6 +1411,8 @@ audit tests
 ↓
 seed/test-data validation
 ↓
+configuration-schema validation
+↓
 dependency/security checks
 ↓
 secret scanning
@@ -1242,7 +1426,9 @@ Docker build
 GHCR publish
 ```
 
-CI also verifies migrations from scratch and version/changelog consistency.
+CI verifies that application code does not depend on local-only secret mechanics in production.
+
+It also validates changelog/version consistency.
 
 > **Agent reasoning provides contextual review; CI provides deterministic verification.**
 
@@ -1252,18 +1438,11 @@ Successful CI produces an immutable artifact:
 ghcr.io/<organization>/<repository>:<git-sha>
 ```
 
-It is:
-
-```text
-built once
-tested once
-security checked once
-deployed unchanged
-```
+It is built once, tested once, security checked once, and deployed unchanged.
 
 ---
 
-# 28. GitHub Is the Platform Control Plane
+# 35. GitHub Is the Platform Control Plane
 
 GitHub owns the state it is already good at:
 
@@ -1284,9 +1463,9 @@ monkeyOS does not mirror this information into another database.
 
 ---
 
-# 29. Infrastructure Provisioning with Terraform
+# 36. Infrastructure Provisioning with Terraform
 
-All infrastructure provisioning is contained in the organization-level:
+All infrastructure provisioning is contained in:
 
 ```text
 <organization>/monkeyos-platform
@@ -1318,7 +1497,7 @@ Azure
 GCP
 ```
 
-Each provider uses its native infrastructure primitives while exposing the same logical monkeyOS runtime contract:
+Each provider uses native infrastructure primitives while exposing the same logical monkeyOS runtime contract:
 
 ```text
 production/default
@@ -1354,7 +1533,7 @@ Provider implementations remain separate rather than creating an over-engineered
 
 ### Dedicated runtime network
 
-Terraform provisions the complete runtime foundation:
+Terraform provisions:
 
 ```text
 monkeyOS production network
@@ -1366,8 +1545,6 @@ monkeyOS production network
 └── app-prod-02
 ```
 
-monkeyOS does not rely on an arbitrary existing corporate network by default.
-
 V1 intentionally uses:
 
 ```text
@@ -1378,45 +1555,15 @@ V1 intentionally uses:
 
 No per-app subnets, Kubernetes, service mesh, complex peering, or multi-tier orchestration are required.
 
-### Native provider implementations
+### Provider implementations
 
-AWS uses approximately:
+AWS uses native VPC/subnet/routing/security-group/EC2 primitives.
 
-```text
-VPC
-subnet
-route table
-Internet Gateway / required egress
-security group
-EC2
-SSH/bootstrap configuration
-```
+Azure uses native VNet/subnet/routing/NSG/NIC/VM primitives.
 
-Azure uses approximately:
+GCP uses native VPC/subnet/routing/firewall/Compute Engine primitives.
 
-```text
-VNet
-subnet
-routing
-Network Security Group
-NICs / public IPs where required
-Linux VMs
-SSH/bootstrap configuration
-```
-
-GCP uses approximately:
-
-```text
-VPC
-subnet
-routing / egress
-firewall rules
-Compute Engine
-external/static IPs where required
-SSH/bootstrap configuration
-```
-
-They need not be internally identical; they must produce the same monkeyOS runtime contract.
+They need not be internally identical; they must produce the same runtime contract.
 
 ### Network policy
 
@@ -1427,6 +1574,7 @@ inbound application traffic
 inbound trusted deployment SSH
 outbound GHCR/image access
 outbound Supabase access
+outbound configured shared/external database access
 outbound required external services
 OS/package updates
 ```
@@ -1464,36 +1612,11 @@ Provisioning uses the host output to establish shared platform configuration suc
 PROD_DEFAULT_HOSTS
 ```
 
-Application repos never need the cloud-specific details.
-
 ### Terraform state
 
 Terraform state remains in an appropriate remote Terraform backend.
 
 It does not live in Supabase or a monkeyOS database.
-
-> **Infrastructure state stays with Terraform's state system.**
-
-### Infrastructure lifecycle
-
-Infrastructure changes are relatively infrequent:
-
-```text
-create infrastructure
-resize hosts
-replace hosts
-change networking
-change firewall rules
-```
-
-Application changes are frequent.
-
-Therefore:
-
-```text
-Terraform → infrastructure lifecycle
-Kamal     → application lifecycle
-```
 
 ### Availability & vertical scaling
 
@@ -1525,7 +1648,7 @@ Vertical scaling remains the default V1 strategy.
 
 ---
 
-# 30. Runtime Architecture
+# 37. Runtime Architecture
 
 The runtime pool is a **small HA cell**, not an application scheduler:
 
@@ -1565,7 +1688,7 @@ routing database
 
 ---
 
-# 31. Cloudflare Front Door
+# 38. Cloudflare Front Door
 
 One wildcard Cloudflare Load Balancer fronts the pool:
 
@@ -1581,11 +1704,11 @@ One wildcard Cloudflare Load Balancer fronts the pool:
 kamal-proxy kamal-proxy
 ```
 
-Because every standard app exists on both hosts, there is no normal need for per-app DNS, per-app load balancers, a routing registry, or a Cloudflare Worker router.
+Because every standard app exists on both hosts, there is no normal need for per-app DNS, per-app load balancers, a routing registry, or a Worker-based router.
 
 ---
 
-# 32. Production Deployment
+# 39. Production Deployment
 
 Deployment is:
 
@@ -1625,17 +1748,15 @@ host mounts
 arbitrary deployment flags
 ```
 
-The effective platform API is simply:
+The effective platform API is:
 
 ```text
 deploy_this_repository()
 ```
 
-The central platform derives everything else.
-
 ---
 
-# 33. Deployment Security
+# 40. Deployment Security
 
 Authorization and execution are separate:
 
@@ -1649,7 +1770,7 @@ EXECUTION
 → Kamal
 ```
 
-The trusted execution sequence is:
+The trusted sequence is:
 
 ```text
 verify successful CI
@@ -1658,7 +1779,7 @@ verify immutable artifact
 ↓
 receive production authorization
 ↓
-load production SSH credential
+load production secrets / SSH
 ↓
 generate trusted temporary Kamal configuration
 ↓
@@ -1667,50 +1788,44 @@ deploy
 
 No arbitrary app-controlled scripts execute after privileged deployment credentials are loaded.
 
-Production SSH is never exposed to local development, normal CI, or application runtime.
+Production credentials are never exposed to local development.
 
 Application Owners control their image, not the host.
 
-They cannot request:
+---
+
+# 41. Secrets & Configuration Summary
+
+The canonical split is:
 
 ```text
-privileged mode
-Docker socket
-host filesystem mounts
-host networking
-arbitrary host ports
-arbitrary Docker flags
+Organization-wide non-secret configuration
+→ GitHub organization variables
+
+Shared production secrets
+→ GitHub organization secrets where appropriate
+
+App-specific production secrets
+→ protected GitHub production environment
+
+Local development secrets
+→ Bun.secrets / OS credential store
+
+Application code
+→ one typed configuration wrapper
 ```
+
+Developers should not manage production secret values.
+
+The Platform Team may provide authorized development credentials for external/shared services when required.
+
+The `add secret` skill handles secure local storage.
+
+The `start` skill validates that everything required is available without printing values.
 
 ---
 
-# 34. Secrets & Configuration
-
-Platform configuration uses the systems that naturally own it.
-
-Examples of GitHub organization variables:
-
-```text
-PROD_DEFAULT_HOSTS
-PROD_SSH_USER
-APPS_BASE_DOMAIN
-SUPABASE_URL
-SUPABASE_PUBLISHABLE_KEY
-```
-
-Shared sensitive values use organization secrets.
-
-App-specific production secrets use that repository's protected `production` environment.
-
-Terraform/cloud credentials remain platform-level credentials.
-
-Production deployment credentials are available only to the trusted deployment path.
-
-Secrets are never printed back to users or coding agents.
-
----
-
-# 35. Continuous Repository Security
+# 42. Continuous Repository Security
 
 Security operates at two levels:
 
@@ -1736,20 +1851,18 @@ They ask:
 
 > **Would we still consider this application secure and maintainable if we built it today?**
 
-They check dependencies, authentication, authorization, RLS, audit coverage, data ownership, PII, test-data hygiene, secrets, frontend/API security, containers, GitHub Actions, deployment, and missing important tests.
+They check dependencies, authentication, authorization, external access, RLS, audit coverage, data ownership, PII, local and production secret handling, frontend/API security, containers, GitHub Actions, deployment, and missing important tests.
 
-The objective is to find material problems, not create style-only churn.
+The objective is material risk reduction, not style-only churn.
 
 ---
 
-# 36. Standard Application Scaffold Guarantee
+# 43. Standard Application Scaffold Guarantee
 
 Every new monkeyOS app starts with:
 
 ```text
 ✓ README.md
-✓ BUSINESS.md
-✓ application-owned business skill for every process or module
 ✓ CHANGELOG.md
 ✓ semantic versioning
 ✓ version + Git SHA identification
@@ -1776,7 +1889,13 @@ Every new monkeyOS app starts with:
 ✓ representative business records
 ✓ important edge cases
 ✓ reproducible local reset
-✓ no production-data dependency
+✓ no production-data dependency for owned state
+
+✓ support for declared read-only shared/external databases
+✓ Bun.secrets local credential storage
+✓ typed configuration wrapper
+✓ secure add-secret flow
+✓ production credentials isolated in GitHub environments
 
 ✓ responsive application shell
 ✓ tests
@@ -1798,12 +1917,13 @@ central audit store
 central data catalog
 central application registry
 central deployment state
-production data for development
+local clones of every external database
+production credentials for developers
 ```
 
 ---
 
-# 37. Organization Platform Guarantee
+# 44. Organization Platform Guarantee
 
 A monkeyOS organization installation provides:
 
@@ -1829,12 +1949,12 @@ A monkeyOS organization installation provides:
 ✓ GitHub organization controls
 ✓ Contributor / Deployer separation
 ✓ protected production environments
-✓ protected deployment credentials
+✓ protected production credentials
 ```
 
 ---
 
-# 38. New Application Provisioning
+# 45. New Application Provisioning
 
 Once the organization platform exists:
 
@@ -1850,6 +1970,12 @@ configure production environment
 configure Deployers
 ↓
 make requester initial application admin
+↓
+configure required external/shared data sources
+↓
+provide authorized development credentials if needed
+↓
+configure production credentials separately
 ↓
 apply standard GitHub controls
 ↓
@@ -1895,6 +2021,50 @@ After this, application development is self-service.
 prod-01    prod-02
 ```
 
+Application data:
+
+```text
+Application
+├── own Supabase schema
+│   → read/write
+│
+├── shared/internal DB
+│   → read-only
+│
+└── external/vendor DB
+    → read-only
+```
+
+Development secrets:
+
+```text
+Platform Team
+     ↓
+development credential
+     ↓
+add development secret
+     ↓
+Bun.secrets
+     ↓
+OS credential store
+     ↓
+typed config wrapper
+     ↓
+local app
+```
+
+Production secrets:
+
+```text
+GitHub production environment
+          ↓
+trusted deployment/runtime
+          ↓
+typed config wrapper
+          ↓
+production app
+```
+
 Application lifecycle:
 
 ```text
@@ -1935,26 +2105,6 @@ Data architecture:
        monkeyOS DATABASE
 ```
 
-Local development:
-
-```text
-Application Repo
-      ↓
-start app
-      ↓
-Local Supabase
-      ↓
-migrations
-      ↓
-synthetic Auth users
-      ↓
-memberships
-      ↓
-representative business data
-      ↓
-fully usable local app
-```
-
 ---
 
 # Guiding Principles
@@ -1965,23 +2115,27 @@ fully usable local app
 
 > **monkeyOS has no central application-state database. State stays with the system that naturally owns it.**
 
-> **Contributors develop applications; Deployers authorize production promotion; Platform Admins control the platform and infrastructure. Repository write access never automatically grants production authority.**
+> **Contributors develop applications; Deployers authorize production promotion; Platform Admins control the platform and infrastructure.**
 
 > **Authentication is shared; application authorization is local and enforced by RLS.**
 
 > **Changes that matter to the business are audited by the application that owns them.**
 
-> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` contains the overall purpose and business map, while every process or module is defined in its own business skill from the beginning.**
-
 > **Own locally. Discover globally. Share explicitly.**
 
-> **Every application is fully usable locally with deterministic synthetic test data and no dependency on production data.**
+> **Application-owned state is reproducible locally. External systems remain external and do not need local replicas.**
+
+> **External/shared database access is explicit, least-privilege, and read-only by default.**
+
+> **Development and production credentials are intentionally separated. Developers receive only authorized development credentials; production credentials remain inside protected GitHub environments.**
+
+> **Sensitive local development credentials live in Bun.secrets rather than plaintext project files.**
+
+> **Application code accesses configuration through one typed wrapper and does not care whether a secret came from Bun.secrets, the production environment, or a test fixture.**
 
 > **Developer-side coding agents are interchangeable; AI inside GitHub Actions uses Pi.**
 
 > **Central workflows and skills let platform improvements propagate across applications.**
-
-> **SOLID and clean, but simple: use the right abstractions without speculative architecture.**
 
 > **Every meaningful change receives testing, independent code review, security review, and deterministic CI verification.**
 

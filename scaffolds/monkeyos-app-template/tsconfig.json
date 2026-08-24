@@ -18,7 +18,7 @@
     "rootDirs": [".", "./.react-router/types"],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "types": ["bun", "node", "vite/client"],
+    "types": ["bun", "vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }

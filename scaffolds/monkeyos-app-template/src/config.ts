@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
 
 export const PublicConfigSchema = z.object({
   supabaseUrl: z.url(),
@@ -20,10 +18,6 @@ const PrivateConfigSchema = PublicConfigSchema.extend({
 export type PublicConfig = z.infer<typeof PublicConfigSchema>;
 export type PrivateConfig = z.infer<typeof PrivateConfigSchema>;
 
-async function readJson<T>(path: string): Promise<T> {
-  return JSON.parse(await readFile(path, "utf8")) as T;
-}
-
 type SourceDeclaration = { name: string; required: boolean };
 type LoadOptions = {
   mode?: "development" | "production" | "test";
@@ -32,29 +26,21 @@ type LoadOptions = {
 };
 
 async function secretValue(service: string, name: string): Promise<string | undefined> {
-  if (typeof Bun !== "undefined") {
-    const value = await Bun.secrets.get({ service, name });
-    return value ?? undefined;
-  }
-  const result = spawnSync("bun", ["scripts/read-local-secret.ts", service, name], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
-  if (result.status !== 0) throw new Error(`Unable to read local credential: ${name}`);
-  return result.stdout || undefined;
+  const value = await Bun.secrets.get({ service, name });
+  return value ?? undefined;
 }
 
 export async function loadConfig(options: LoadOptions = {}): Promise<PrivateConfig> {
   const mode =
     options.mode ?? (process.env.APP_ENV === "production" ? "production" : "development");
-  const identity = await readJson<{
+  const identity = (await Bun.file("monkeyos.identity.json").json()) as {
     schema: string;
     secretService: string;
-  }>("monkeyos.identity.json");
-  const packageJson = await readJson<{ version: string }>("package.json");
+  };
+  const packageJson = (await Bun.file("package.json").json()) as { version: string };
   const declarations =
     options.declarations ??
-    (await readJson<SourceDeclaration[]>("config/external-data-sources.json"));
+    ((await Bun.file("config/external-data-sources.json").json()) as SourceDeclaration[]);
   const explicit = options.explicit ?? {};
   const resolve = async (name: string): Promise<string | undefined> => {
     if (mode === "test") return explicit[name];

@@ -36,6 +36,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "package.json",
     "bun.lock",
     "Dockerfile",
+    "server.ts",
     "react-router.config.ts",
     "src/root.tsx",
     "src/routes.ts",
@@ -64,6 +65,8 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     engines?: { bun?: string };
     packageManager?: string;
     scripts?: Record<string, string>;
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
   };
   const changelog = await readFile(join(root, "CHANGELOG.md"), "utf8");
   if (!packageJson.version || !changelog.includes(`## ${packageJson.version}`))
@@ -85,9 +88,9 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     findings.push({ level: "BLOCKING", message: "ui:add must invoke the official shadcn CLI" });
   }
   for (const [script, command] of Object.entries({
-    dev: "react-router dev",
-    build: "react-router build",
-    start: "react-router-serve ./build/server/index.js",
+    dev: "bun --conditions=development ./node_modules/@react-router/dev/bin.cjs dev",
+    build: "bun ./node_modules/@react-router/dev/bin.cjs build",
+    start: "bun server.ts",
   })) {
     if (packageJson.scripts?.[script] !== command) {
       findings.push({
@@ -96,8 +99,16 @@ export async function auditRepository(root: string): Promise<Finding[]> {
       });
     }
   }
-  if (!packageJson.scripts?.typecheck?.includes("react-router typegen")) {
+  if (!packageJson.scripts?.typecheck?.includes("@react-router/dev/bin.cjs typegen")) {
     findings.push({ level: "BLOCKING", message: "typecheck must generate React Router types" });
+  }
+  for (const dependency of ["@react-router/node", "@react-router/serve", "@types/node"]) {
+    if (packageJson.dependencies?.[dependency] || packageJson.devDependencies?.[dependency]) {
+      findings.push({
+        level: "BLOCKING",
+        message: `Direct Node dependency is forbidden: ${dependency}`,
+      });
+    }
   }
   for (const legacy of [
     "index.html",
@@ -169,21 +180,25 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   const dockerfilePath = join(root, "Dockerfile");
   if (await exists(dockerfilePath)) {
     const dockerfile = await readFile(dockerfilePath, "utf8");
-    if (
-      !dockerfile.includes("FROM oven/bun:alpine") ||
-      !dockerfile.includes("FROM node:24-alpine")
-    ) {
+    if (!dockerfile.includes("FROM oven/bun:alpine") || /FROM\s+node:/i.test(dockerfile)) {
       findings.push({
         level: "BLOCKING",
-        message: "Docker must use moving Bun and Node 24 LTS bases",
+        message: "Docker must use only the moving Bun base",
       });
     }
-    if (!dockerfile.includes("react-router-serve")) {
+    if (!dockerfile.includes('CMD ["bun", "server.ts"]')) {
       findings.push({
         level: "BLOCKING",
-        message: "Docker must run the standard React Router server",
+        message: "Docker must run the thin Bun-native React Router adapter",
       });
     }
+  }
+  const server = await readFile(join(root, "server.ts"), "utf8");
+  if (!server.includes("Bun.serve") || !server.includes("createRequestHandler")) {
+    findings.push({
+      level: "BLOCKING",
+      message: "server.ts must remain a thin Bun/React Router adapter",
+    });
   }
   for (const workflow of ["ci.yml", "deploy.yml", "audit.yml"]) {
     const content = await readFile(join(root, ".github", "workflows", workflow), "utf8");

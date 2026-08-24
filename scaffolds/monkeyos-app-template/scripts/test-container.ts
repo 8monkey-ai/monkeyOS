@@ -44,6 +44,13 @@ try {
     await Bun.sleep(250);
   }
   if (!healthy) throw new Error("Container health endpoint did not become ready");
+  const document = await fetch(`http://127.0.0.1:${port}/login`);
+  if (!document.ok) throw new Error("Container did not serve the React Router document");
+  const assetPath = (await document.text()).match(/\/assets\/[^"']+\.js/)?.[0];
+  if (!assetPath) throw new Error("React Router document did not reference a generated asset");
+  const asset = await fetch(`http://127.0.0.1:${port}${assetPath}`);
+  if (!asset.ok || !asset.headers.get("cache-control")?.includes("immutable"))
+    throw new Error("Bun adapter did not serve immutable generated assets correctly");
 } finally {
   Bun.spawnSync(["docker", "stop", name], { stdout: "ignore", stderr: "ignore" });
 }

@@ -34,7 +34,7 @@ test("health endpoint reports the immutable application identity", async ({ requ
   expect(response.ok()).toBe(true);
   await expect(response.json()).resolves.toMatchObject({
     status: "ok",
-    version: "2.1.0",
+    version: "2.2.0",
     sha: "test",
   });
 });

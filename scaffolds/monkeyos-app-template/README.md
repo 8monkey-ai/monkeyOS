@@ -29,7 +29,7 @@ External dependencies are declared without values in `config/external-data-sourc
 
 ## Secrets and configuration
 
-Run `bun run secret:add <DECLARED_NAME>`. Input is hidden and stored in the OS credential store under the repository-derived Bun.secrets service. Values are never accepted as command arguments or written to `.env`. Production values live only in the protected GitHub `production` environment. `src/config.ts` is the single Zod configuration wrapper for Bun.secrets in development, process environment in production, and explicit test fixtures. Because the official React Router development server runs on Node, the wrapper uses the narrow `scripts/read-local-secret.ts` Bun bridge to read the credential store without exporting or logging values.
+Run `bun run secret:add <DECLARED_NAME>`. Input is hidden and stored in the OS credential store under the repository-derived Bun.secrets service. Values are never accepted as command arguments or written to `.env`. Production values live only in the protected GitHub `production` environment. `src/config.ts` is the single Zod configuration wrapper for Bun.secrets in development, process environment in production, and explicit test fixtures. Every application process runs on Bun, so the wrapper reads Bun.secrets directly without a subprocess or credential bridge.
 
 ## Business Application Contract
 
@@ -56,9 +56,9 @@ shadcn/ui is the primary component and layout system. `components.json` is initi
 
 ## Framework conventions
 
-This is a standard React Router Framework Mode application. `react-router dev`, `react-router build`, framework type generation, `src/root.tsx`, `src/routes.ts`, route modules, and `@react-router/serve` own the normal framework lifecycle. Vite contains only the React Router, Tailwind, and officially documented React Compiler plugins. There is no application-owned browser bootstrap, proxy, chunking scheme, dual-process development server, or static-file server.
+This is a standard React Router Framework Mode application. Its dev/build/typegen CLI is forced onto Bun and retains the normal `src/root.tsx`, `src/routes.ts`, route modules, generated Web Streams server build, and Vite lifecycle. Vite contains only the React Router, Tailwind, and officially documented React Compiler plugins. The small `server.ts` serves generated assets and delegates every application request to React Router's standard request handler; there is no application-owned browser bootstrap, proxy, chunking scheme, dual-process development server, or custom application middleware.
 
-Use the latest stable Bun as the only package manager and test runner. React Router uses the current supported Node LTS for its official development toolchain and production server. Compatible package ranges are declared in `package.json`, exact tested resolutions remain in `bun.lock`, and Dependabot keeps Bun packages, the moving Bun/Node container bases, and GitHub Actions current without patch constants scattered through scripts.
+Use the latest stable Bun as the only JavaScript runtime, package manager, application server, and test runner. No Node executable, direct Node adapter dependency, or Node container base is required. Compatible package ranges are declared in `package.json`, exact tested resolutions remain in `bun.lock`, and Dependabot keeps Bun packages, the moving Bun container base, and GitHub Actions current without patch constants scattered through scripts.
 
 ## Deploy
 

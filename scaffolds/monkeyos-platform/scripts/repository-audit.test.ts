@@ -42,3 +42,22 @@ test("rejects routine Supabase access from visual components", async () => {
     "src/routes/process.tsx accesses Supabase data directly",
   );
 });
+
+test("rejects direct Node runtime adapters", async () => {
+  const root = await mkdtemp(join(tmpdir(), "monkeyos-audit-node-"));
+  await Promise.all(
+    ["README.md", "CHANGELOG.md"].map((file) => writeFile(join(root, file), "## 1.0.0\n")),
+  );
+  await writeFile(join(root, "AGENTS.md"), "ok");
+  await writeFile(join(root, "BUSINESS.md"), "# Business\n");
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({ version: "1.0.0", dependencies: { "@react-router/serve": "^8.3.0" } }),
+  );
+
+  const findings = await auditRepository(root);
+
+  expect(findings.map((finding) => finding.message)).toContain(
+    "Direct Node dependency is forbidden: @react-router/serve",
+  );
+});

@@ -1154,7 +1154,6 @@ compatible coding agent
 Git
 GitHub CLI
 Bun
-current Node LTS supported by React Router
 Supabase CLI
 Docker-compatible runtime
 ```
@@ -1230,8 +1229,8 @@ Secret values are never displayed.
 
 ```text
 Package manager/tests    latest stable Bun
-Application server      current supported Node LTS
-                         @react-router/serve
+Application server      latest stable Bun
+                         Bun.serve + React Router request handler
 Language                 strict TypeScript
 
 Frontend                 React 19
@@ -1268,9 +1267,9 @@ E2E                      Playwright
 
 No routine server-data fetching through `useEffect`.
 
-Every application uses the official React Router Framework Mode conventions: `react-router dev`, `react-router build`, framework type generation, `src/root.tsx`, `src/routes.ts`, route modules, and the small standard `@react-router/serve` production adapter. React Router owns browser bootstrapping, route code splitting, development HMR, server rendering, static assets, and production request dispatch. Applications do not recreate those concerns with a parallel `index.html`, browser entry, Vite proxy/chunk system, multi-process development launcher, or static-file server.
+Every application uses the official React Router Framework Mode conventions: the React Router dev/build/typegen CLI forced onto Bun, `src/root.tsx`, `src/routes.ts`, route modules, and the generated Web Streams server build. React Router owns browser bootstrapping, route code splitting, development HMR, server rendering, and production request dispatch. A small `server.ts` uses `Bun.serve` only to serve the generated static assets and pass all other requests to React Router's standard `createRequestHandler`; it must not grow application middleware or parallel framework behavior. Applications do not recreate those concerns with a parallel `index.html`, browser entry, Vite proxy/chunk system, or multi-process development launcher.
 
-Bun remains the only package manager and the application test runner. React Router's current supported Node LTS runtime is used only for its official development toolchain and production server adapter. The Docker build resolves dependencies with Bun, builds the framework artifact once, and runs that exact artifact through `@react-router/serve`.
+Bun is the only JavaScript runtime, package manager, application server, and test runner. The React Router and Vite CLIs run through Bun explicitly; no Node executable, direct Node adapter package, or Node container base is required. The Docker build resolves dependencies with Bun, builds the framework artifact once, and runs that exact artifact through the thin Bun-native adapter.
 
 Each real module owns typed TanStack Query query/mutation hooks and stable query keys. Those hooks own routine Supabase access, Zod validation of untrusted mutation inputs, error propagation, and precise cache invalidation or updates after successful mutations. Pages and visual components consume the hooks instead of calling Supabase `.from()` or `.rpc()` directly. Client filtering and hidden controls are never authorization; PostgreSQL RLS remains authoritative.
 
@@ -1416,7 +1415,7 @@ ghcr.io/<organization>/<repository>:<git-sha>
 
 The image targets the organization-selected Linux runtime architecture. It is built once, tested once, security checked once, and deployed unchanged.
 
-Application packages use compatible semantic-version ranges while `bun.lock` records the exact tested resolution. Native Dependabot support refreshes Bun packages, the moving Bun and Node LTS container bases, and GitHub Actions through reviewed commits. Workflows install the latest stable Bun, current action major channels, and Pi `@latest`; runtime patch constants are not duplicated in scripts. A deployment never resolves dependencies or rebuilds; a dependency or toolchain refresh creates and validates a new immutable SHA artifact.
+Application packages use compatible semantic-version ranges while `bun.lock` records the exact tested resolution. Native Dependabot support refreshes Bun packages, the moving Bun container base, and GitHub Actions through reviewed commits. Workflows install the latest stable Bun, current action major channels, and Pi `@latest`; runtime patch constants are not duplicated in scripts. A deployment never resolves dependencies or rebuilds; a dependency or toolchain refresh creates and validates a new immutable SHA artifact.
 
 ---
 
@@ -1963,7 +1962,7 @@ Every new monkeyOS app starts with:
 ✓ components.json initialized by the official shadcn CLI with the Base UI preset
 ✓ official CLI-generated shadcn standard components
 ✓ responsive application shell composed from the CLI-generated shadcn Sidebar
-✓ latest stable Bun package management + supported Node LTS React Router server
+✓ latest stable Bun runtime, package management, React Router server, and tests
 ✓ standard React Router Framework Mode without parallel app-owned server/build plumbing
 ✓ tests
 ✓ code-review loop
@@ -2213,7 +2212,7 @@ Data architecture:
 
 > **shadcn/ui is the primary application component system, including the shell. Initialize and add official Base UI registry components through `shadcn@latest`; do not hand-write approximations of available registry components.**
 
-> **CI uses the latest stable Bun and the container uses the supported Node LTS required by standard React Router Framework Mode; compatible dependency, base-image, and action releases are maintained through semantic ranges and Dependabot, and deployment always promotes the exact tested architecture-matched artifact.**
+> **CI and containers use the latest stable Bun as the only JavaScript runtime; compatible dependency, base-image, and action releases are maintained through semantic ranges and Dependabot, and deployment always promotes the exact tested architecture-matched artifact.**
 
 > **Central workflows and skills let platform improvements propagate across applications.**
 

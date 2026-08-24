@@ -62,7 +62,7 @@ Real application modules keep routine Supabase server state behind typed TanStac
 
 Application UI uses official shadcn/ui registry code as its primary component system. Initialize it through `shadcn@latest` with the Base UI preset and add standard components—including the sidebar shell—through the CLI. Keep generated registry primitives in `src/components/ui/`, compose them in application components, and treat hand-written approximations of available registry components as an audit failure.
 
-Application delivery uses standard React Router Framework Mode: route modules, framework root/type generation, `react-router dev/build`, and the small `@react-router/serve` adapter. App repositories do not own a parallel browser bootstrap, dev proxy/orchestrator, static-file server, or custom bundling scheme. Bun remains the sole package manager and test runner; the official React Router toolchain/server uses its supported current Node LTS.
+Application delivery uses standard React Router Framework Mode: route modules, framework root/type generation, the dev/build CLI forced onto Bun, the generated Web Streams server build, and a thin `Bun.serve`/`createRequestHandler` adapter. App repositories do not own a parallel browser bootstrap, dev proxy/orchestrator, application middleware stack, or custom bundling scheme. Bun is the sole JavaScript runtime, package manager, application server, and test runner.
 
 ## Operations
 
@@ -81,13 +81,13 @@ bun run check
 
 Validate each provider definition with its native tooling before deployment. Infrastructure commands are Platform Admin operations, never application lifecycle steps.
 
-Use the latest stable Bun for package management and tests, plus the supported current Node LTS required by React Router. Dependencies use compatible semver ranges while committed lockfiles preserve exact tested builds. Dependabot natively maintains Bun packages, moving Bun/Node container bases, and GitHub Actions. Workflows use current action major channels and `setup-bun` latest, so toolchain updates do not require script edits. Deployment always promotes the already-tested immutable image and never resolves dependencies again.
+Use the latest stable Bun for all JavaScript execution, package management, serving, and tests. Dependencies use compatible semver ranges while committed lockfiles preserve exact tested builds. Dependabot natively maintains Bun packages, the moving Bun container base, and GitHub Actions. Workflows use current action major channels and `setup-bun` latest, so toolchain updates do not require script edits. Deployment always promotes the already-tested immutable image and never resolves dependencies again.
 
 ## Current implementation references
 
 - GitHub reusable workflows, deployments/environments, and rulesets: <https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows>, <https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments>, <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets>
 - Supabase local development and RLS: <https://supabase.com/docs/guides/local-development/cli-workflows>, <https://supabase.com/docs/guides/database/postgres/row-level-security>
-- React Router Framework Mode and deployment: <https://reactrouter.com/start/modes>, <https://reactrouter.com/start/framework/deploying>
+- React Router Framework Mode, deployment, and current Bun/non-Node runtime changes: <https://reactrouter.com/start/modes>, <https://reactrouter.com/start/framework/deploying>, <https://reactrouter.com/start/changelog>
 - React Compiler with React Router/Vite: <https://react.dev/learn/react-compiler/installation>
 - Bun secrets: <https://bun.com/docs/runtime/secrets>
 - Pi coding agent: <https://github.com/earendil-works/pi/tree/main/packages/coding-agent>

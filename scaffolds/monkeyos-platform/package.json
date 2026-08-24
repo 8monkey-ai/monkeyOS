@@ -1,13 +1,13 @@
 {
   "name": "monkeyos-platform",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun ./node_modules/typescript/bin/tsc --noEmit",
     "test": "bun test",
     "check": "bun run format:check && bun run lint && bun run typecheck && bun test",
     "identity": "bun provisioning/identity-cli.ts",

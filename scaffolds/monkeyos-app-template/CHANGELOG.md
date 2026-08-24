@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0
+
+- Made Bun the only JavaScript runtime across React Router development, type generation, builds, tests, production serving, and containers.
+- Replaced the Node/Express app server with a thin native `Bun.serve` adapter around React Router's standard Web Streams request handler.
+- Removed direct Node adapter packages, the Node container base, and the development credential subprocess bridge.
+
 ## 2.1.0
 
 ### Changed

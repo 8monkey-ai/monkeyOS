@@ -6,10 +6,11 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 
 ## Non-negotiable stack
 
-- Latest stable Bun only; do not pin a Bun minor line or add npm, pnpm, yarn, Node-only scripts, or another package manager.
-- Strict TypeScript, React 19 with React Compiler, React Router/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, oxfmt/oxlint, Bun test, and Playwright.
+- Latest stable Bun is the only package manager and test runner; do not pin a Bun minor line or add npm, pnpm, yarn, or another package manager. Use the current supported Node LTS only where the official React Router toolchain and `@react-router/serve` require it.
+- Strict TypeScript, React 19 with React Compiler, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, oxfmt/oxlint, Bun test, and Playwright.
 - Keep dependencies on compatible semver ranges and commit `bun.lock`. Let Dependabot refresh compatible dependency and action versions; do not hard-code patch versions in scripts or workflows.
 - Prefer SOLID, cohesive modules and direct code. Add abstractions only when they remove demonstrated duplication or enforce a real boundary.
+- Keep framework plumbing standard: `react-router dev/build/typegen`, `src/root.tsx`, `src/routes.ts`, route modules, and `@react-router/serve`. Do not add an app-owned browser entry, dev proxy/orchestrator, static-file server, or custom Vite chunking.
 
 ## UI and state
 

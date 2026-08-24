@@ -16,7 +16,7 @@ const pageLabels: Record<string, string> = {
   "/access": "Access",
 };
 
-export function AppShell() {
+export default function AppShell() {
   const { config } = useRuntime();
   const { pathname } = useLocation();
 

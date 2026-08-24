@@ -19,7 +19,7 @@ const foundations = [
   },
 ];
 
-export function DashboardPage() {
+export default function DashboardPage() {
   return (
     <div>
       <PageHeading

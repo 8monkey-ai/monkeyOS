@@ -9,7 +9,7 @@ export default defineConfig({
   use: { baseURL: "http://127.0.0.1:5173", trace: "on-first-retry" },
   webServer: {
     command: "bun run dev:test",
-    url: "http://127.0.0.1:5173/healthz",
+    url: "http://127.0.0.1:5173/login",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

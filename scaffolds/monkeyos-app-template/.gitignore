@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.react-router/
+build/
 .DS_Store
 playwright-report/
 test-results/

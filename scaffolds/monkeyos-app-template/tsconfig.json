@@ -15,12 +15,21 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "rootDirs": [".", "./.react-router/types"],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "types": ["bun", "vite/client"],
+    "types": ["bun", "node", "vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "server", "scripts", "tests", "playwright.config.ts", "vite.config.ts"]
+  "include": [
+    "src",
+    "scripts",
+    "tests",
+    ".react-router/types/**/*",
+    "playwright.config.ts",
+    "react-router.config.ts",
+    "vite.config.ts"
+  ]
 }

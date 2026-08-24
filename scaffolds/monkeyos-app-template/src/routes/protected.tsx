@@ -2,9 +2,9 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../contexts/auth";
 import { useMembership } from "../hooks/use-membership";
 import { useRuntime } from "../contexts/runtime";
-import { Button } from "./ui/button";
+import { Button } from "../components/ui/button";
 
-export function ProtectedRoute() {
+export default function ProtectedRoute() {
   const auth = useAuth();
   const membership = useMembership();
   const { supabase } = useRuntime();
@@ -30,11 +30,6 @@ export function ProtectedRoute() {
       />
     );
   return <Outlet />;
-}
-
-export function AdminRoute() {
-  const membership = useMembership();
-  return membership.data?.role === "admin" ? <Outlet /> : <Navigate to="/" replace />;
 }
 
 function RouteMessage({

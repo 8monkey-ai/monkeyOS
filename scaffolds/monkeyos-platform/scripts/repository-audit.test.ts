@@ -30,15 +30,15 @@ test("rejects routine Supabase access from visual components", async () => {
   await writeFile(join(root, "package.json"), '{"version":"1.0.0"}');
   await mkdir(join(root, "business/skills/process"), { recursive: true });
   await writeFile(join(root, "business/skills/process/SKILL.md"), "# Process\n");
-  await mkdir(join(root, "src/pages"), { recursive: true });
+  await mkdir(join(root, "src/routes"), { recursive: true });
   await writeFile(
-    join(root, "src/pages/process.tsx"),
+    join(root, "src/routes/process.tsx"),
     'export const load = (supabase: any) => supabase.from("records").select();\n',
   );
 
   const findings = await auditRepository(root);
 
   expect(findings.map((finding) => finding.message).join("\n")).toContain(
-    "src/pages/process.tsx accesses Supabase data directly",
+    "src/routes/process.tsx accesses Supabase data directly",
   );
 });

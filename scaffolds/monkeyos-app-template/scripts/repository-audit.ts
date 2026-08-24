@@ -12,7 +12,12 @@ async function exists(path: string) {
 async function walk(root: string, current = root): Promise<string[]> {
   const files: string[] = [];
   for (const entry of await readdir(current, { withFileTypes: true })) {
-    if (["node_modules", ".git", "dist", "test-results"].includes(entry.name)) continue;
+    if (
+      ["node_modules", ".git", ".react-router", "build", "dist", "test-results"].includes(
+        entry.name,
+      )
+    )
+      continue;
     const path = join(current, entry.name);
     if (entry.isDirectory()) files.push(...(await walk(root, path)));
     else files.push(relative(root, path));
@@ -31,6 +36,9 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "package.json",
     "bun.lock",
     "Dockerfile",
+    "react-router.config.ts",
+    "src/root.tsx",
+    "src/routes.ts",
   ]) {
     if (!(await exists(join(root, file))))
       findings.push({ level: "BLOCKING", message: `Missing required ${file}` });
@@ -76,6 +84,42 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   if (packageJson.scripts?.["ui:add"] !== "bunx --bun shadcn@latest add") {
     findings.push({ level: "BLOCKING", message: "ui:add must invoke the official shadcn CLI" });
   }
+  for (const [script, command] of Object.entries({
+    dev: "react-router dev",
+    build: "react-router build",
+    start: "react-router-serve ./build/server/index.js",
+  })) {
+    if (packageJson.scripts?.[script] !== command) {
+      findings.push({
+        level: "BLOCKING",
+        message: `${script} must use the standard React Router Framework Mode command`,
+      });
+    }
+  }
+  if (!packageJson.scripts?.typecheck?.includes("react-router typegen")) {
+    findings.push({ level: "BLOCKING", message: "typecheck must generate React Router types" });
+  }
+  for (const legacy of [
+    "index.html",
+    "src/main.tsx",
+    "src/app.tsx",
+    "server/index.ts",
+    "scripts/dev.ts",
+  ]) {
+    if (await exists(join(root, legacy))) {
+      findings.push({
+        level: "BLOCKING",
+        message: `Legacy custom application entry remains: ${legacy}`,
+      });
+    }
+  }
+  const viteConfig = await readFile(join(root, "vite.config.ts"), "utf8");
+  if (!viteConfig.includes("@react-router/dev/vite") || !viteConfig.includes("reactRouter()")) {
+    findings.push({ level: "BLOCKING", message: "Vite is not using React Router Framework Mode" });
+  }
+  if (/\b(?:server|build)\s*:/.test(viteConfig)) {
+    findings.push({ level: "BLOCKING", message: "Vite contains custom server/build plumbing" });
+  }
   const agents = await readFile(join(root, "AGENTS.md"), "utf8");
   for (const principle of [
     "TanStack Query",
@@ -88,7 +132,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     }
   }
   for (const file of files.filter((file) =>
-    /^(?:src\/pages|src\/components)\/.*\.tsx$/.test(file),
+    /^(?:src\/routes|src\/components)\/.*\.tsx$/.test(file),
   )) {
     const source = await readFile(join(root, file), "utf8");
     if (/\.(?:from|rpc)\s*\(/.test(source)) {
@@ -125,8 +169,20 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   const dockerfilePath = join(root, "Dockerfile");
   if (await exists(dockerfilePath)) {
     const dockerfile = await readFile(dockerfilePath, "utf8");
-    if (!dockerfile.includes("FROM oven/bun:alpine")) {
-      findings.push({ level: "BLOCKING", message: "Docker must use the latest stable Bun image" });
+    if (
+      !dockerfile.includes("FROM oven/bun:alpine") ||
+      !dockerfile.includes("FROM node:24-alpine")
+    ) {
+      findings.push({
+        level: "BLOCKING",
+        message: "Docker must use moving Bun and Node 24 LTS bases",
+      });
+    }
+    if (!dockerfile.includes("react-router-serve")) {
+      findings.push({
+        level: "BLOCKING",
+        message: "Docker must run the standard React Router server",
+      });
     }
   }
   for (const workflow of ["ci.yml", "deploy.yml", "audit.yml"]) {

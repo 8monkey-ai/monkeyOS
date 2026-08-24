@@ -26,7 +26,7 @@ import { PageHeading } from "./dashboard";
 const AddMemberSchema = z.object({ email: z.email(), role: z.enum(["admin", "member"]) });
 type AddMemberValues = z.infer<typeof AddMemberSchema>;
 
-export function AccessPage() {
+export default function AccessPage() {
   const { user } = useAuth();
   const members = useMembers();
   const add = useAddMember();

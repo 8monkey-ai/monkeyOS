@@ -19,7 +19,11 @@ export function createAppClient(config: PublicConfig): AppSupabaseClient {
     config.supabasePublishableKey,
     {
       db: { schema: "monkeyos_app_template" },
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      auth: {
+        persistSession: typeof window !== "undefined",
+        autoRefreshToken: typeof window !== "undefined",
+        detectSessionInUrl: typeof window !== "undefined",
+      },
     },
   );
   cachedClient = { key, client };

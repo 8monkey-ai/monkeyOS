@@ -17,9 +17,10 @@
 - Business behavior belongs in application-owned `BUSINESS.md` and current authoritative `business/skills/*/SKILL.md` files. Platform synchronization must never overwrite them.
 - The generic scaffold contains only the Auth, app-local membership, and audit foundation. Do not invent placeholder business tables, records, routes, or CRUD; the first real business module starts from a routed business skill and named owner decisions.
 - Use official shadcn registry components through `shadcn@latest`; do not hand-write lookalikes for available standard components. Keep registry source in `src/components/ui/` and application composition outside it.
+- Applications use standard React Router Framework Mode: route modules, `react-router dev/build/typegen`, the framework root document, and `@react-router/serve`. Do not recreate routing, code splitting, dev proxying, static serving, or browser bootstrapping in app-owned Vite/server scripts.
 - Keep routine Supabase server state behind typed TanStack Query hooks with stable query keys. Pages and visual components consume those hooks instead of calling `.from()` or `.rpc()` directly; successful mutations invalidate or update the exact affected keys, while RLS remains authoritative.
 - Keep the runtime architecture configurable through `RUNTIME_ARCH`, defaulting to `arm64`; use `amd64` for AMD/Intel x86-64. Keep host topology in the protected semicolon-delimited `RUNTIME_HOST` value.
-- Use latest stable Bun and compatible dependency ranges with committed lockfiles. Deploy only the immutable image already built and tested for the selected architecture.
+- Use latest stable Bun as the only package manager and test runner, plus the current supported Node LTS required by React Router's standard development and production server. Keep compatible dependency ranges and committed lockfiles. Deploy only the immutable image already built and tested for the selected architecture.
 - Local secrets use Bun.secrets, production secrets use the protected GitHub `production` environment, and tests use explicit fixtures. Never commit secret values.
 
 ## Change discipline

@@ -13,7 +13,7 @@ import { Input } from "../components/ui/input";
 const LoginSchema = z.object({ email: z.email(), password: z.string().min(8) });
 type LoginValues = z.infer<typeof LoginSchema>;
 
-export function LoginPage() {
+export default function LoginPage() {
   const { supabase } = useRuntime();
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -89,7 +89,11 @@ export function LoginPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || form.formState.isSubmitting}
+            >
               {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>

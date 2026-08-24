@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+
+### Changed
+
+- Replaced the custom SPA bootstrap, dual-process development launcher, Vite proxy/chunking, and Bun static server with standard React Router Framework Mode route modules and commands.
+- Moved runtime configuration into the framework root loader, retained Bun.secrets through a narrow development credential bridge, and made `/healthz` a framework resource route.
+- Standardized production serving on `@react-router/serve` with the current supported Node LTS while retaining Bun as the only package manager and test runner.
+
 ## 2.0.0
 
 ### Changed

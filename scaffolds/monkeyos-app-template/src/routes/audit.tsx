@@ -4,7 +4,7 @@ import { useAuditLog } from "../hooks/use-audit-log";
 import { formatDate } from "../lib/utils";
 import { PageHeading } from "./dashboard";
 
-export function AuditPage() {
+export default function AuditPage() {
   const audit = useAuditLog();
   return (
     <div>

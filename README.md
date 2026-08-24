@@ -391,6 +391,8 @@ The same pattern applies to CI, deployment, repository audits, and AI-powered wo
 
 This allows improvements such as new security scanners, CI changes, Kamal hardening, Pi updates, or audit improvements to propagate without editing every app.
 
+Central workflows use the current supported major channel for each GitHub Action, so compatible minor and patch releases are inherited automatically. Dependabot tracks action major releases and proposes reviewed compatibility updates.
+
 Applications consume central workflows through a protected compatibility channel:
 
 ```text
@@ -432,7 +434,7 @@ Pi
 central monkeyOS skill
 ```
 
-Pi's version, configuration, and model access are centrally controlled.
+GitHub Actions always invokes the latest published Pi coding-agent package. The organization configures the agent explicitly through non-secret `PI_PROVIDER` and `PI_MODEL` variables plus a protected `PI_API_KEY` secret. Central workflows pass the provider, model, and credential to Pi, fail closed when any is missing, and keep Pi in reviewed read-only mode for audits.
 
 ---
 
@@ -476,14 +478,17 @@ The mechanism remains deliberately simple: centrally managed plain files synchro
 
 > **How should an agent safely modify this application?**
 
-It contains application-relevant information:
+It contains enforceable application-relevant rules:
 
-- stack
-- engineering standards
-- state-management rules
-- data rules
-- application security
-- testing expectations
+- required Bun, TypeScript, React, Supabase, and test stack
+- shadcn-first standard component and shell composition
+- SOLID-but-simple engineering standards
+- server, local, shared-client, and URL state ownership
+- business-contract loading and update rules
+- RLS, Auth, audit, external-data, and secret boundaries
+- compatible dependency and lockfile policy
+- testing, review, security-review, changelog, and version gates
+- centrally managed files that application work must not edit
 
 It does not contain platform operational details such as cloud provisioning internals, production SSH, Cloudflare maintenance, Kamal internals, or runtime topology.
 
@@ -492,6 +497,8 @@ One platform rule is sufficient:
 > **monkeyOS-managed files must not be modified as normal application code.**
 
 For any change that affects business behavior, the agent reads `BUSINESS.md` and loads the relevant application-owned business skills before making the change.
+
+`AGENTS.md` must be strong enough to guide ordinary implementation decisions without restating platform operations. Repository audits verify that its non-negotiable UI, business, data, security, dependency, and managed-file boundaries remain present.
 
 ---
 
@@ -1211,7 +1218,7 @@ Secret values are never displayed.
 # 32. Standard Application Stack
 
 ```text
-Runtime/package manager  Bun
+Runtime/package manager  Bun 1.4.x
 Language                 strict TypeScript
 
 Frontend                 React 19
@@ -1220,8 +1227,8 @@ Frontend                 React 19
                          Vite
 
 UI                       Tailwind
-                         Base UI
-                         shadcn
+                         shadcn/ui as the primary component system
+                         Base UI through shadcn components
 
 Forms                    React Hook Form
 Validation               Zod
@@ -1250,7 +1257,9 @@ No routine server-data fetching through `useEffect`.
 
 Avoid unnecessary manual memoization under React Compiler.
 
-No central monkeyOS UI component framework.
+Every app starts with `components.json`, app-owned shadcn primitives in `src/components/ui/`, and an application shell composed from the shadcn Sidebar pattern. Agents use `shadcn@latest` to add standard components before inventing a custom primitive, then adapt the generated source in place while preserving accessibility, responsive behavior, slots, and theme tokens.
+
+There is no central monkeyOS UI component framework and no parallel application-level primitive system competing with shadcn.
 
 ---
 
@@ -1373,9 +1382,9 @@ production build
 ↓
 Playwright
 ↓
-Docker build
+ARM64 Docker build
 ↓
-GHCR publish
+ARM64 GHCR publish
 ```
 
 CI also validates changelog/version consistency.
@@ -1386,7 +1395,9 @@ Successful CI produces:
 ghcr.io/<organization>/<repository>:<git-sha>
 ```
 
-The image is built once, tested once, security checked once, and deployed unchanged.
+The image targets Linux ARM64. It is built once, tested once, security checked once, and deployed unchanged.
+
+Application packages use compatible semantic-version ranges while `bun.lock` records the exact tested resolution. Native Dependabot support refreshes Bun packages, container bases, and GitHub Actions through reviewed commits. Workflows use Bun `1.4.x`, current action major channels, and Pi `@latest` so patch constants are not duplicated in scripts. A deployment never resolves dependencies or rebuilds; a compatible dependency refresh creates and validates a new immutable SHA artifact.
 
 ---
 
@@ -1432,6 +1443,8 @@ monkeyos-platform/
 ```
 
 Each provider folder defines one standard production runtime pool.
+
+Every template exposes host count, instance/VM type, boot-volume size/type, operating-system image, network/subnet names, and CIDR ranges as provider inputs rather than requiring edits to resource definitions. The default pool has two hosts, but any positive supported host count is valid. Production compute and application images are ARM64.
 
 ## AWS
 
@@ -1493,13 +1506,14 @@ Every provider implementation must produce:
 ```text
 production/default
 ├── app-prod-01
-└── app-prod-02
+├── app-prod-02
+└── ... app-prod-N
 ```
 
-Each host must be:
+The host count is configurable and defaults to two. Each host must be:
 
 ```text
-Linux
+Linux ARM64
 Docker-capable
 reachable by trusted deployment
 able to reach Supabase
@@ -1521,8 +1535,7 @@ monkeyOS production network
 ├── application subnet
 ├── routing / internet egress
 ├── firewall / security rules
-├── app-prod-01
-└── app-prod-02
+└── configurable ARM64 runtime hosts
 ```
 
 V1 intentionally uses:
@@ -1530,7 +1543,7 @@ V1 intentionally uses:
 ```text
 1 dedicated network
 1 application subnet
-2 interchangeable hosts
+N interchangeable ARM64 hosts (default 2)
 ```
 
 No per-app subnets, Kubernetes, service mesh, complex peering, or multi-tier orchestration are required.
@@ -1654,24 +1667,20 @@ A normal app deployment never executes CloudFormation, Bicep, or other infrastru
 Infrastructure maintenance happens one host at a time:
 
 ```text
-drain prod-01
+select one host from RUNTIME_HOST
+↓
+drain
 ↓
 resize / replace / maintain
 ↓
 verify
 ↓
 restore
-
-drain prod-02
 ↓
-resize / replace / maintain
-↓
-verify
-↓
-restore
+repeat for the next host
 ```
 
-Cloudflare keeps traffic on the healthy host.
+Cloudflare keeps traffic on the healthy remainder of the pool. Maintenance never drains more capacity than the configured availability threshold permits.
 
 Vertical scaling remains the default V1 strategy.
 
@@ -1681,30 +1690,23 @@ Vertical scaling remains the default V1 strategy.
 
 # 38. Runtime Architecture
 
-The runtime pool is a **small HA cell**, not an application scheduler:
+The runtime pool is a **small configurable HA cell**, not an application scheduler:
 
 ```text
 production/default
 
 ├── app-prod-01
-└── app-prod-02
+├── app-prod-02
+└── ... app-prod-N
 ```
 
-Every standard app runs on every host:
+The protected GitHub environment variable `RUNTIME_HOST` contains the unique semicolon-separated hostname/IP list used by trusted deployment, for example:
 
 ```text
-app-prod-01
-├── finance
-├── hr
-├── ops
-└── reporting
-
-app-prod-02
-├── finance
-├── hr
-├── ops
-└── reporting
+app-prod-01.example.com;app-prod-02.example.com;app-prod-03.example.com
 ```
+
+Every standard app runs on every configured host. The application cannot set or override `RUNTIME_HOST`.
 
 There is no:
 
@@ -1721,21 +1723,22 @@ routing database
 
 # 39. Cloudflare Front Door
 
-One wildcard Cloudflare Load Balancer fronts the pool:
+One wildcard Cloudflare Load Balancer fronts the complete `RUNTIME_HOST` pool:
 
 ```text
 *.apps.company.com
         │
         ▼
    Cloudflare LB
-      /      \
-     ▼        ▼
- prod-01    prod-02
-     │        │
-kamal-proxy kamal-proxy
+        │
+        ▼
+ prod-01 ... prod-N
+        │
+        ▼
+   kamal-proxy
 ```
 
-Because every standard app exists on both hosts, there is no normal need for per-app DNS, per-app load balancers, a routing registry, or a Worker-based router.
+Because every standard app exists on every configured host, there is no normal need for per-app DNS, per-app load balancers, a routing registry, or a Worker-based router.
 
 ---
 
@@ -1762,7 +1765,7 @@ Kamal
       ↓
 SSH
       ↓
-prod-01 + prod-02
+every host in RUNTIME_HOST
 ```
 
 There is no dedicated Kamal server.
@@ -1932,12 +1935,14 @@ Every new monkeyOS app starts with:
 ✓ secure add-secret flow
 ✓ production credentials isolated in GitHub environments
 
-✓ responsive application shell
+✓ components.json + shadcn-first standard components
+✓ responsive shadcn Sidebar application shell
+✓ Bun 1.4.x + compatible dependency maintenance
 ✓ tests
 ✓ code-review loop
 ✓ security-review loop
 ✓ central CI
-✓ immutable GHCR artifact
+✓ immutable ARM64 GHCR artifact
 ✓ explicit protected production deployment
 ```
 
@@ -1966,7 +1971,7 @@ A monkeyOS organization installation provides:
 ✓ monkeyos-platform repository
 ✓ reusable central workflows
 ✓ centrally managed skills
-✓ Pi configuration
+✓ latest Pi with configured provider/model/credential
 ✓ application provisioning tooling
 
 ✓ AWS CloudFormation
@@ -1975,8 +1980,9 @@ A monkeyOS organization installation provides:
 ✓ dedicated runtime network
 ✓ application subnet
 ✓ firewall/security rules
-✓ two-host HA pool
-✓ Docker-ready Linux hosts
+✓ configurable HA host count, default two
+✓ configurable network, ARM64 compute/image, and volume inputs
+✓ ARM64 Docker-ready Linux hosts
 ✓ no monkeyOS-managed infrastructure state backend
 
 ✓ Cloudflare wildcard ingress
@@ -2052,9 +2058,10 @@ After this, application development is self-service.
         │
     app subnet
         │
-   ┌────┴────┐
-   ▼         ▼
-prod-01    prod-02
+        │
+        ▼
+ configurable ARM64 host pool
+ prod-01 ... prod-N
 ```
 
 Application data:
@@ -2120,7 +2127,7 @@ central deployment
     ↓
 Kamal
     ↓
-prod-01 + prod-02
+every host in RUNTIME_HOST
 ```
 
 Data architecture:
@@ -2173,7 +2180,11 @@ Data architecture:
 
 > **Application code accesses configuration through one typed wrapper and does not care whether a secret came from Bun.secrets, the production environment, or a test fixture.**
 
-> **Developer-side coding agents are interchangeable; AI inside GitHub Actions uses Pi.**
+> **Developer-side coding agents are interchangeable; AI inside GitHub Actions uses the latest Pi with an explicitly configured provider, model, and protected credential.**
+
+> **shadcn/ui is the primary application component system, including the shell; standard components are added and adapted in place rather than recreated in a parallel library.**
+
+> **Bun stays on the 1.4.x compatibility line, compatible dependency and action releases are maintained automatically through semantic ranges and Dependabot, and deployment always promotes the exact tested ARM64 artifact.**
 
 > **Central workflows and skills let platform improvements propagate across applications.**
 
@@ -2189,6 +2200,6 @@ Data architecture:
 
 > **Infrastructure provisioning owns the runtime foundation; Kamal owns the application lifecycle.**
 
-> **The runtime is a small HA cell of interchangeable hosts, not a scheduler. Scale vertically before adding orchestration complexity.**
+> **The runtime is a small configurable HA cell of interchangeable ARM64 hosts, not a scheduler. The protected semicolon-separated RUNTIME_HOST list defines the pool; scale vertically before adding orchestration complexity.**
 
 > **Keep monkeyOS deliberately simple and avoid creating platform-owned services, databases, registries, or abstractions until a concrete requirement justifies them.**

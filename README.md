@@ -92,6 +92,11 @@ A standard application repository looks approximately like:
 ```text
 finance/
 ├── README.md
+├── BUSINESS.md
+├── business/
+│   └── skills/
+│       └── <process-or-module>/
+│           └── SKILL.md
 ├── CHANGELOG.md
 ├── AGENTS.md
 ├── package.json
@@ -486,13 +491,15 @@ One platform rule is sufficient:
 
 > **monkeyOS-managed files must not be modified as normal application code.**
 
+For any change that affects business behavior, the agent reads `BUSINESS.md` and loads the relevant application-owned business skills before making the change.
+
 ---
 
 # 14. README Is the Application Front Door
 
 Every application has a useful top-level `README.md`.
 
-No separate documentation hierarchy should be required for ordinary development.
+No separate general-purpose documentation hierarchy should be required for ordinary development. The Business Application Contract system below is part of the standard application structure.
 
 It explains:
 
@@ -504,6 +511,7 @@ It explains:
 - external/shared data dependencies
 - user-level deployment flow
 - current application version
+- where to find the Business Application Contract system and domain skills
 
 Getting started should be approximately:
 
@@ -520,7 +528,108 @@ If the app requires development credentials for shared/external systems, the REA
 
 ---
 
-# 15. CHANGELOG & Versioning
+# 15. Business Application Contract System
+
+A single business document is not enough for a complex operational application.
+
+Every application therefore owns a layered Business Application Contract system:
+
+```text
+BUSINESS.md
+business/
+└── skills/
+    ├── <business-domain>/
+    │   ├── SKILL.md
+    │   └── references/
+    └── <business-process>/
+        ├── SKILL.md
+        └── references/
+```
+
+For example:
+
+```text
+BUSINESS.md
+business/
+└── skills/
+    ├── work-order-lifecycle/
+    ├── commissions/
+    ├── inventory-costing/
+    ├── warranty-handoffs/
+    └── customer-data-retention/
+```
+
+These are application-owned business instructions. They are separate from centrally synchronized `.monkeyos/skills/`, which define shared platform and engineering workflows.
+
+## `BUSINESS.md` — Business Front Door
+
+`BUSINESS.md` contains the application's overall business purpose and acts as the routing layer for its detailed business skills. It is not a detailed process specification.
+
+It answers:
+
+> **What business does this application support, which rules must it preserve, and where is the detailed domain guidance?**
+
+It remains concise and records:
+
+- application purpose, users, scope, and explicit out-of-scope boundaries
+- named business, process, and data owners, including decision rights
+- shared vocabulary, key entities, and authoritative identifiers
+- application-wide business invariants
+- an index of every business process and module, linked to its business skill
+- a routing table describing which business skills apply to which changes
+- the priority of business rules when sources appear to conflict
+- application-level open decisions and assumptions requiring confirmation
+
+Detailed workflows, permissions, calculations, record rules, integrations, and exceptions do not belong in `BUSINESS.md`. They live in the relevant process or module skill.
+
+## Application Business Skills
+
+Every business process or module has its own skill from the beginning. Each skill covers one bounded capability, policy, or operational process.
+
+Its `SKILL.md` defines:
+
+- when the skill must be used
+- purpose, scope, actors, roles, and operational permissions
+- workflows, states, allowed transitions, handoffs, deadlines, and exception paths
+- approval, separation-of-duty, correction, cancellation, reopening, and terminal-record rules
+- master/reference-data ownership and change rules
+- calculations, KPI definitions, rounding rules, and effective dates
+- record classification, retention, archival, anonymization, audit, and export requirements
+- external-system ownership, source-of-truth boundaries, reconciliation, and failure handling
+- operating constraints such as sites, shared devices, peripherals, languages, time zones, and manual fallback
+- acceptance scenarios and references needed to preserve the business behavior
+
+A skill may keep supporting material in its own `references/` folder so agents load detailed knowledge only when the task requires it.
+
+## Agent Behavior
+
+For any change that may affect business behavior, the coding agent must:
+
+```text
+read BUSINESS.md
+↓
+identify affected business domains/processes
+↓
+load every relevant business skill
+↓
+preserve documented invariants
+↓
+surface contradictions or missing decisions
+↓
+update the contract, tests, and CHANGELOG when behavior changes
+```
+
+Business rules must not exist only in source code, UI behavior, issue discussions, or the memory of individual users.
+
+An application never relies on `BUSINESS.md` alone for process knowledge. Even a simple application starts with at least one business skill covering its initial process or module. New processes and modules receive their own skills when they are introduced.
+
+The README links to `BUSINESS.md`, and `AGENTS.md` instructs agents to load the relevant business skills before changing business behavior.
+
+> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` states the overall purpose and routes agents, while every business process or module has its own skill from the beginning.**
+
+---
+
+# 16. CHANGELOG & Versioning
 
 Every application contains:
 
@@ -565,7 +674,7 @@ The Git SHA remains the immutable technical deployment identity.
 
 ---
 
-# 16. Authentication & Application Access
+# 17. Authentication & Application Access
 
 Every application starts with working authentication:
 
@@ -628,7 +737,7 @@ Normal browser code cannot browse `auth.users`.
 
 ---
 
-# 17. Authorization Is Enforced by RLS
+# 18. Authorization Is Enforced by RLS
 
 Application access is enforced at the database layer:
 
@@ -647,7 +756,7 @@ Hiding UI elements is never considered sufficient authorization.
 
 ---
 
-# 18. Business Audit Trails
+# 19. Business Audit Trails
 
 Every application owns its own business audit history:
 
@@ -686,7 +795,7 @@ The mechanism should remain simple rather than becoming an event-sourcing framew
 
 ---
 
-# 19. Data Architecture & Governance
+# 20. Data Architecture & Governance
 
 The governing principle is:
 
@@ -753,7 +862,7 @@ Cross-domain writes use explicit operations controlled by the source domain rath
 
 ---
 
-# 20. Shared and External Databases
+# 21. Shared and External Databases
 
 Applications may consume databases that are not owned by the app, including:
 
@@ -793,7 +902,7 @@ The application must not run migrations or attempt to take ownership of these da
 
 ---
 
-# 21. External Data Sources in Development
+# 22. External Data Sources in Development
 
 monkeyOS guarantees reproducibility for application-owned state.
 
@@ -821,7 +930,7 @@ The rule is:
 
 ---
 
-# 22. External Data Dependencies Are Explicit
+# 23. External Data Dependencies Are Explicit
 
 Each app's README should state which external/shared data sources it consumes and why.
 
@@ -838,7 +947,7 @@ It is not a monkeyOS registry and contains no secret values.
 
 ---
 
-# 23. Development vs Production Secrets
+# 24. Development vs Production Secrets
 
 monkeyOS separates development and production credentials:
 
@@ -858,7 +967,7 @@ Production credentials remain inside GitHub.
 
 ---
 
-# 24. Bun.secrets for Local Secret Storage
+# 25. Bun.secrets for Local Secret Storage
 
 Sensitive local credentials are stored through **Bun.secrets**, backed by the OS credential store.
 
@@ -889,7 +998,7 @@ The value must never be printed, committed, or placed into shell history.
 
 ---
 
-# 25. One Typed Configuration Wrapper
+# 26. One Typed Configuration Wrapper
 
 Application code should not call Bun.secrets directly throughout the codebase.
 
@@ -918,7 +1027,7 @@ The app fails fast if required configuration is missing or malformed.
 
 ---
 
-# 26. Secret Classification
+# 27. Secret Classification
 
 The convention is:
 
@@ -937,7 +1046,7 @@ Developers do not manage production secret values.
 
 ---
 
-# 27. Shared Database Security Rules
+# 28. Shared Database Security Rules
 
 Shared/external database access defaults to:
 
@@ -959,7 +1068,7 @@ External/shared database access is a dependency, not ownership.
 
 ---
 
-# 28. Supabase & Database Security
+# 29. Supabase & Database Security
 
 One Supabase project represents the shared production environment/trust boundary rather than one application.
 
@@ -997,7 +1106,7 @@ No ORM.
 
 ---
 
-# 29. Local Development & Test Data
+# 30. Local Development & Test Data
 
 Local development requires approximately:
 
@@ -1041,7 +1150,7 @@ External systems do not need to be cloned locally.
 
 ---
 
-# 30. `start app`
+# 31. `start app`
 
 The central `start` skill performs approximately:
 
@@ -1077,7 +1186,7 @@ Secret values are never displayed.
 
 ---
 
-# 31. Standard Application Stack
+# 32. Standard Application Stack
 
 ```text
 Runtime/package manager  Bun
@@ -1123,7 +1232,7 @@ No central monkeyOS UI component framework.
 
 ---
 
-# 32. Engineering & Review Philosophy
+# 33. Engineering & Review Philosophy
 
 The engineering standard is:
 
@@ -1163,7 +1272,7 @@ No commit proceeds with blocking findings.
 
 ---
 
-# 33. `commit`
+# 34. `commit`
 
 The central `commit` skill performs:
 
@@ -1171,6 +1280,10 @@ The central `commit` skill performs:
 inspect change
 ↓
 classify change
+↓
+load relevant business skills
+↓
+update BUSINESS.md / business skills where business behavior changed
 ↓
 update CHANGELOG/version where appropriate
 ↓
@@ -1201,7 +1314,7 @@ push
 
 ---
 
-# 34. Continuous Integration
+# 35. Continuous Integration
 
 Application CI is a thin caller to central monkeyOS CI.
 
@@ -1251,7 +1364,7 @@ The image is built once, tested once, security checked once, and deployed unchan
 
 ---
 
-# 35. GitHub Is the Platform Control Plane
+# 36. GitHub Is the Platform Control Plane
 
 GitHub owns:
 
@@ -1272,7 +1385,7 @@ monkeyOS does not mirror this into another database.
 
 ---
 
-# 36. Cloud-Native Infrastructure Provisioning
+# 37. Cloud-Native Infrastructure Provisioning
 
 All infrastructure definitions live under:
 
@@ -1338,7 +1451,7 @@ The important rule is:
 
 ---
 
-## 36.1 Runtime Contract
+## 37.1 Runtime Contract
 
 Every provider implementation must produce:
 
@@ -1363,7 +1476,7 @@ able to receive approved application traffic
 
 ---
 
-## 36.2 Dedicated Runtime Network
+## 37.2 Dedicated Runtime Network
 
 Each provider definition provisions the complete runtime foundation:
 
@@ -1389,7 +1502,7 @@ No per-app subnets, Kubernetes, service mesh, complex peering, or multi-tier orc
 
 ---
 
-## 36.3 Native Provider Resources
+## 37.3 Native Provider Resources
 
 AWS CloudFormation should create the required native resources such as:
 
@@ -1431,7 +1544,7 @@ The source definitions do not need to look identical.
 
 ---
 
-## 36.4 Network Policy
+## 37.4 Network Policy
 
 Runtime hosts receive only necessary connectivity:
 
@@ -1449,7 +1562,7 @@ Everything else should be denied or avoided by default.
 
 ---
 
-## 36.5 Infrastructure State
+## 37.5 Infrastructure State
 
 monkeyOS does **not** maintain its own infrastructure-state database or state files.
 
@@ -1474,7 +1587,7 @@ This keeps monkeyOS from introducing another state system solely for a very smal
 
 ---
 
-## 36.6 Infrastructure Lifecycle
+## 37.6 Infrastructure Lifecycle
 
 Infrastructure changes are intentionally infrequent:
 
@@ -1501,7 +1614,7 @@ A normal app deployment never executes CloudFormation, Bicep, or other infrastru
 
 ---
 
-## 36.7 Availability & Vertical Scaling
+## 37.7 Availability & Vertical Scaling
 
 Infrastructure maintenance happens one host at a time:
 
@@ -1531,7 +1644,7 @@ Vertical scaling remains the default V1 strategy.
 
 ---
 
-# 37. Runtime Architecture
+# 38. Runtime Architecture
 
 The runtime pool is a **small HA cell**, not an application scheduler:
 
@@ -1571,7 +1684,7 @@ routing database
 
 ---
 
-# 38. Cloudflare Front Door
+# 39. Cloudflare Front Door
 
 One wildcard Cloudflare Load Balancer fronts the pool:
 
@@ -1591,7 +1704,7 @@ Because every standard app exists on both hosts, there is no normal need for per
 
 ---
 
-# 39. Production Deployment
+# 40. Production Deployment
 
 Deployment is:
 
@@ -1639,7 +1752,7 @@ deploy_this_repository()
 
 ---
 
-# 40. Deployment Security
+# 41. Deployment Security
 
 Authorization and execution are separate:
 
@@ -1677,7 +1790,7 @@ Application Owners control their image, not the host.
 
 ---
 
-# 41. Secrets & Configuration Summary
+# 42. Secrets & Configuration Summary
 
 The canonical split is:
 
@@ -1708,7 +1821,7 @@ The `start` skill validates that everything required is available without printi
 
 ---
 
-# 42. Continuous Repository Security
+# 43. Continuous Repository Security
 
 Security operates at two levels:
 
@@ -1740,12 +1853,14 @@ The objective is material risk reduction, not style-only churn.
 
 ---
 
-# 43. Standard Application Scaffold Guarantee
+# 44. Standard Application Scaffold Guarantee
 
 Every new monkeyOS app starts with:
 
 ```text
 ✓ README.md
+✓ BUSINESS.md
+✓ application-owned business skill for every process or module
 ✓ CHANGELOG.md
 ✓ semantic versioning
 ✓ version + Git SHA identification
@@ -1806,7 +1921,7 @@ production credentials for developers
 
 ---
 
-# 44. Organization Platform Guarantee
+# 45. Organization Platform Guarantee
 
 A monkeyOS organization installation provides:
 
@@ -1837,7 +1952,7 @@ A monkeyOS organization installation provides:
 
 ---
 
-# 45. New Application Provisioning
+# 46. New Application Provisioning
 
 Once the organization platform exists:
 
@@ -2004,6 +2119,8 @@ Data architecture:
 > **Authentication is shared; application authorization is local and enforced by RLS.**
 
 > **Changes that matter to the business are audited by the application that owns them.**
+
+> **Every application has an application-owned Business Application Contract system: `BUSINESS.md` contains the overall purpose and business map, while every process or module is defined in its own business skill from the beginning.**
 
 > **Own locally. Discover globally. Share explicitly.**
 

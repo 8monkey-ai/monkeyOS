@@ -1,0 +1,17 @@
+{
+  "source": "monkeyos-platform/skills",
+  "compatibility": "v1",
+  "files": {
+    "add-secret/SKILL.md": "1068a03b19b9ac0219b9962980d9e6a5f0d57ea51435b1aae2153d1dd4c2d910",
+    "check-environment/SKILL.md": "67a9cbda80f8eef411975ab363a585670e1eb787d719b7b56972d0324ffeef30",
+    "commit/SKILL.md": "56a757c563d0bddfa2a11b2e968ff3c99ff870e5db4888f30093ef27a1d94d65",
+    "database-migration/SKILL.md": "34f083b97538d50c5607640d6aac1e3e7eddfd240732a6de5a4366fa28d0c49c",
+    "deploy/SKILL.md": "b946e8f8292b3a9d54b469070c3fb4055b3a8a1dbc7cdaf191251c969e2fb2f0",
+    "repository-audit/SKILL.md": "a620dbe9365f78c9c5b9641a925210aad4b0875cd757e764853ee3a83d63b7fe",
+    "review/SKILL.md": "3c251f1b6810f951245cfcdaa62b2a7e0a0108301d78a33dd97b5862c0d3afc4",
+    "rollback/SKILL.md": "574d7b6e65b4dafdea550eca95e0a139ec6dc1914ecdec169b42c4794acda571",
+    "security-review/SKILL.md": "dc7e04af9c0e7ec3765b7203a1bb965b73af3dae0edd5a687881dc109f647050",
+    "start/SKILL.md": "a84e47206a78595f9b9af07650615f9dbbb1daa0ed9a2efb94c17c06bddbb3cf",
+    "test/SKILL.md": "0bedd65e537b20402925000005858a465f69edf3cf952f557c9365d1b4e3d016"
+  }
+}

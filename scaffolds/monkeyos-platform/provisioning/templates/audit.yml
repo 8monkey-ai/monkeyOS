@@ -1,0 +1,12 @@
+name: Repository audit
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  audit:
+    uses: __ORGANIZATION__/monkeyos-platform/.github/workflows/audit.yml@v1
+    secrets: inherit

@@ -1,0 +1,3 @@
+# Azure runtime pool
+
+Deploy `main.bicep` to a dedicated resource group. Parameters expose host count, `runtimeArchitecture`, compatible VM-size/image overrides, OS disk size/type, VNet/subnet names, and CIDR ranges. ARM64 is the default; AMD64 selects AMD/Intel x86-64 defaults. Copy `runtimeHostPublicIps` into protected `RUNTIME_HOST`, copy `selectedRuntimeArchitecture` into `RUNTIME_ARCH`, and configure the matching Cloudflare pool. Azure Resource Manager owns state; there is no external state file. Run `az deployment group what-if` before `az deployment group create`. App deployment never invokes Bicep.

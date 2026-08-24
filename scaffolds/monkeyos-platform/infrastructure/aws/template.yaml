@@ -1,0 +1,192 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Configurable multi-architecture monkeyOS Docker runtime pool
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: monkeyos-production
+  VpcCidr:
+    Type: String
+    Default: 10.40.0.0/16
+  AppSubnetCidr:
+    Type: String
+    Default: 10.40.10.0/24
+  TrustedSshCidr:
+    Type: String
+    Description: Trusted deployment runner/VPN CIDR; never use 0.0.0.0/0 in production.
+  AppIngressCidr:
+    Type: String
+    Description: Approved Cloudflare origin CIDR or controlled ingress proxy CIDR.
+  DeployerSshPublicKey:
+    Type: String
+    NoEcho: true
+  HostCount:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    MaxValue: 20
+  RuntimeArchitecture:
+    Type: String
+    Default: arm64
+    AllowedValues: [arm64, amd64]
+    Description: arm64 by default; amd64 supports AMD and Intel x86-64 hosts.
+  InstanceType:
+    Type: String
+    Default: ""
+    Description: Optional override; defaults to t4g.small for arm64 or t3.small for amd64.
+  RootVolumeSizeGiB:
+    Type: Number
+    Default: 30
+    MinValue: 12
+  RootVolumeType:
+    Type: String
+    Default: gp3
+    AllowedValues: [gp3, io2]
+  AmiIdOverride:
+    Type: String
+    Default: ""
+    Description: Optional architecture-compatible AMI override.
+  LatestArm64AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+  LatestAmd64AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+Conditions:
+  IsArm64: !Equals [!Ref RuntimeArchitecture, arm64]
+  HasInstanceTypeOverride: !Not [!Equals [!Ref InstanceType, ""]]
+  HasAmiIdOverride: !Not [!Equals [!Ref AmiIdOverride, ""]]
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: !Sub "${EnvironmentName}-vpc" }]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+  AppSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref AppSubnetCidr
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: !Sub "${EnvironmentName}-app" }]
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  AppSubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AppSubnet
+      RouteTableId: !Ref RouteTable
+  RuntimeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: monkeyOS runtime ingress
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - {
+            IpProtocol: tcp,
+            FromPort: 22,
+            ToPort: 22,
+            CidrIp: !Ref TrustedSshCidr,
+            Description: trusted-deployment,
+          }
+        - {
+            IpProtocol: tcp,
+            FromPort: 80,
+            ToPort: 80,
+            CidrIp: !Ref AppIngressCidr,
+            Description: cloudflare-origin,
+          }
+        - {
+            IpProtocol: tcp,
+            FromPort: 443,
+            ToPort: 443,
+            CidrIp: !Ref AppIngressCidr,
+            Description: cloudflare-origin-tls,
+          }
+      SecurityGroupEgress:
+        - {
+            IpProtocol: "-1",
+            CidrIp: 0.0.0.0/0,
+            Description: package-ghcr-supabase-approved-services,
+          }
+      Tags: [{ Key: Name, Value: !Sub "${EnvironmentName}-runtime" }]
+  RuntimeLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${EnvironmentName}-${RuntimeArchitecture}"
+      LaunchTemplateData:
+        ImageId:
+          !If [
+            HasAmiIdOverride,
+            !Ref AmiIdOverride,
+            !If [IsArm64, !Ref LatestArm64AmiId, !Ref LatestAmd64AmiId],
+          ]
+        InstanceType:
+          !If [HasInstanceTypeOverride, !Ref InstanceType, !If [IsArm64, t4g.small, t3.small]]
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups: [!Ref RuntimeSecurityGroup]
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeType: !Ref RootVolumeType
+              VolumeSize: !Ref RootVolumeSizeGiB
+              Encrypted: true
+              DeleteOnTermination: true
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            set -euxo pipefail
+            dnf update -y
+            dnf install -y docker
+            systemctl enable --now docker
+            useradd --create-home --groups docker --shell /bin/bash deployer
+            install -d -m 700 -o deployer -g deployer /home/deployer/.ssh
+            printf '%s\n' '${DeployerSshPublicKey}' > /home/deployer/.ssh/authorized_keys
+            chown deployer:deployer /home/deployer/.ssh/authorized_keys
+            chmod 600 /home/deployer/.ssh/authorized_keys
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - { Key: Name, Value: !Sub "${EnvironmentName}-runtime-host" }
+              - { Key: monkeyOSPool, Value: production-default }
+          - ResourceType: volume
+            Tags:
+              - { Key: Name, Value: !Sub "${EnvironmentName}-runtime-volume" }
+  RuntimeAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: [!Ref AppSubnet]
+      MinSize: !Ref HostCount
+      MaxSize: !Ref HostCount
+      DesiredCapacity: !Ref HostCount
+      HealthCheckType: EC2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref RuntimeLaunchTemplate
+        Version: !GetAtt RuntimeLaunchTemplate.LatestVersionNumber
+Outputs:
+  NetworkId: { Value: !Ref Vpc }
+  AppSubnetId: { Value: !Ref AppSubnet }
+  RuntimeSecurityGroupId: { Value: !Ref RuntimeSecurityGroup }
+  RuntimeAutoScalingGroupName: { Value: !Ref RuntimeAutoScalingGroup }
+  ConfiguredHostCount: { Value: !Ref HostCount }
+  RuntimeArchitecture: { Value: !Ref RuntimeArchitecture }
+  SshUser: { Value: deployer }

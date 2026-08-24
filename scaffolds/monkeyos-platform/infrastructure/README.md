@@ -1,0 +1,7 @@
+# Stable runtime contract
+
+Choose exactly one provider implementation per organization installation. All three produce `production/default` with a dedicated network, one application subnet, controlled ingress, outbound package/GHCR/Supabase/service access, and a configurable positive number of interchangeable architecture-matched Docker-ready Linux hosts. The default is two ARM64 hosts; `RUNTIME_ARCH=amd64` selects AMD or Intel x86-64 defaults. Deployment consumes the actual pool through protected `RUNTIME_HOST` and `RUNTIME_ARCH` variables.
+
+Provider control planes own state: CloudFormation, Azure Resource Manager, or Google Cloud Infrastructure Manager. Inputs must narrow SSH to trusted deployment egress and application ports to Cloudflare origins or a controlled origin path. The sample outbound rule is intentionally broad enough for package updates, GHCR, Supabase, and declared dependencies; organizations with stable endpoints should replace it with egress controls appropriate to their network.
+
+Host count, architecture, instance/VM type, boot volume size/type, operating-system image, network/subnet names, and CIDR ranges are provider inputs rather than edits to resource definitions. The provider architecture input and protected `RUNTIME_ARCH` must match. Infrastructure lifecycle is separate from application deployment. Create, resize, or replace networks and hosts here; deploy immutable architecture-matched application images with Kamal.

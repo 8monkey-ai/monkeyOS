@@ -1,0 +1,5 @@
+{
+  "skills": ["../skills/repository-audit", "../skills/review", "../skills/security-review"],
+  "enableSkillCommands": false,
+  "defaultTools": ["read", "grep", "find", "ls"]
+}

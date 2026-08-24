@@ -1,0 +1,17 @@
+name: Deploy production
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: Tested 40-character commit SHA to promote
+        required: true
+permissions:
+  contents: read
+  packages: read
+  actions: read
+jobs:
+  deploy:
+    uses: monkeyos-org/monkeyos-platform/.github/workflows/deploy.yml@v1
+    with:
+      git_sha: ${{ inputs.git_sha }}
+    secrets: inherit

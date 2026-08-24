@@ -1,0 +1,47 @@
+name: monkeyOS reusable repository audit
+on:
+  workflow_call:
+    secrets:
+      PI_API_KEY:
+        required: true
+permissions:
+  contents: read
+  issues: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PI_PROVIDER: ${{ vars.PI_PROVIDER }}
+      PI_MODEL: ${{ vars.PI_MODEL }}
+      PI_API_KEY: ${{ secrets.PI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/monkeyos-platform
+          ref: v1
+          path: .monkeyos-platform
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Deterministic contract checks
+        run: bun .monkeyos-platform/scripts/repository-audit.ts --root .
+      - name: Pi security and maintainability review
+        run: |
+          test -n "$PI_PROVIDER"
+          test -n "$PI_MODEL"
+          test -n "$PI_API_KEY"
+          bunx --bun @earendil-works/pi-coding-agent@latest \
+            --provider "$PI_PROVIDER" \
+            --model "$PI_MODEL" \
+            --api-key "$PI_API_KEY" \
+            --tools read,grep,find,ls \
+            --no-session \
+            -p @.monkeyos-platform/pi/audit-prompt.md > audit.md
+      - name: Publish audit summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat audit.md >> "$GITHUB_STEP_SUMMARY"
+          gh issue create --title "Scheduled monkeyOS repository audit $(date -u +%F)" --body-file audit.md

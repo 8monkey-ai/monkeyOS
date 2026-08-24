@@ -1,0 +1,35 @@
+name: Provision application
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: organization/repository
+        required: true
+      initial_admin_email:
+        required: true
+      deployers_team_id:
+        required: true
+permissions:
+  contents: read
+jobs:
+  provision:
+    environment: platform-administration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Apply repository bootstrap
+        env:
+          GH_TOKEN: ${{ secrets.PLATFORM_GITHUB_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RUNTIME_HOST: ${{ vars.RUNTIME_HOST }}
+          DEPLOY_SSH_USER: ${{ vars.DEPLOY_SSH_USER }}
+        run: >-
+          bun run provision --apply
+          --repository "${{ inputs.repository }}"
+          --apps-domain "${{ vars.APPS_DOMAIN }}"
+          --initial-admin-email "${{ inputs.initial_admin_email }}"
+          --deployers-team-id "${{ inputs.deployers_team_id }}"

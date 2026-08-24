@@ -1,0 +1,3 @@
+# AWS runtime pool
+
+Deploy `template.yaml` as a CloudFormation stack after supplying narrow deployment and Cloudflare-origin CIDRs plus the deployment public key. Parameters expose host count, `RuntimeArchitecture`, compatible instance/AMI overrides, encrypted root-volume size/type, VPC CIDR, and subnet CIDR. ARM64 is the default; AMD64 selects AMD/Intel x86-64 defaults. Discover the Auto Scaling Group's current public addresses and set protected `RUNTIME_HOST` plus matching `RUNTIME_ARCH` values in GitHub and the Cloudflare pool. CloudFormation owns stack state. Validate with `cfn-lint` and review a change set before updates. Never run this stack during an app deployment.

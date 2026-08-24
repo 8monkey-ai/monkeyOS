@@ -1,0 +1,11 @@
+[
+  {
+    "name": "REPORTING_DATABASE_URL",
+    "purpose": "Optional neutral example of a shared reporting dependency",
+    "owner": "Reporting platform team",
+    "access": "read-only",
+    "required": false,
+    "development": "remote-when-authorized",
+    "contract": "approved views only; no DDL, migrations, or writes"
+  }
+]

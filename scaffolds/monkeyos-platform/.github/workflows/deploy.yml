@@ -1,0 +1,76 @@
+name: monkeyOS reusable production deploy
+on:
+  workflow_call:
+    inputs:
+      git_sha:
+        required: true
+        type: string
+    secrets:
+      DEPLOY_SSH_PRIVATE_KEY:
+        required: true
+      APP_ENV_JSON:
+        required: true
+permissions:
+  contents: read
+  packages: read
+  actions: read
+jobs:
+  deploy:
+    environment: production
+    concurrency:
+      group: production-${{ github.repository }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEPLOY_SHA: ${{ inputs.git_sha }}
+      APP_HOSTNAME: ${{ vars.APP_HOSTNAME }}
+      RUNTIME_HOST: ${{ vars.RUNTIME_HOST }}
+      RUNTIME_ARCH: ${{ vars.RUNTIME_ARCH || 'arm64' }}
+      DEPLOY_SSH_USER: ${{ vars.DEPLOY_SSH_USER }}
+      APP_ENV_JSON: ${{ secrets.APP_ENV_JSON }}
+      KAMAL_REGISTRY_PASSWORD: ${{ github.token }}
+    steps:
+      - name: Validate immutable identity
+        run: |
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+      - name: Verify successful central CI for SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count="$(gh api "repos/$GITHUB_REPOSITORY/commits/$DEPLOY_SHA/check-runs" --jq '[.check_runs[] | select((.name == "ci / quality" or .name == "quality") and .conclusion == "success")] | length')"
+          test "$count" -gt 0
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/monkeyos-platform
+          ref: v1
+          path: monkeyos-platform
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Verify immutable image exists
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker manifest inspect --verbose "ghcr.io/${GITHUB_REPOSITORY,,}:$DEPLOY_SHA" > "$RUNNER_TEMP/manifest.json"
+          jq -e --arg arch "$RUNTIME_ARCH" 'if type == "array" then any(.[]; .Descriptor.platform.architecture == $arch) else .Descriptor.platform.architecture == $arch end' "$RUNNER_TEMP/manifest.json"
+      - name: Generate trusted configuration
+        run: bun monkeyos-platform/deployment/kamal/generate-config.ts
+      - name: Load protected app runtime values
+        run: |
+          bun -e 'import {appendFile} from "node:fs/promises"; const v=JSON.parse(process.env.APP_ENV_JSON); for (const [k,val] of Object.entries(v)) { if (!/^[A-Z][A-Z0-9_]*$/.test(k) || typeof val!=="string") throw new Error("invalid protected runtime configuration"); const delimiter=`MONKEYOS_${crypto.randomUUID()}`; console.log(`::add-mask::${val}`); await appendFile(Bun.env.GITHUB_ENV, `${k}<<${delimiter}\n${val}\n${delimiter}\n`); }'
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          install -m 600 /dev/null "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          while IFS= read -r host; do
+            test -n "$host" && ssh-keyscan -H "$host" >> "$HOME/.ssh/known_hosts"
+          done < config/runtime-hosts
+      - name: Install compatible Kamal 2.x
+        run: gem install kamal --version '~> 2.0' --no-document
+      - name: Deploy SHA to configured runtime hosts
+        run: kamal deploy --version "$DEPLOY_SHA"

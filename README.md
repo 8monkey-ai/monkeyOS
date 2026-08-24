@@ -39,6 +39,16 @@ The goal is:
 
 > **Make building applications extremely easy while keeping infrastructure, security, deployment, and data-governance boundaries strong.**
 
+## Reference scaffolds
+
+The canonical, independently publishable repository sources are maintained alongside this contract:
+
+- [`scaffolds/monkeyos-app-template/`](scaffolds/monkeyos-app-template/) — generic application repository
+- [`scaffolds/monkeyos-platform/`](scaffolds/monkeyos-platform/) — generic organization platform repository
+- [`validation/VALIDATION_REPORT.md`](validation/VALIDATION_REPORT.md) — latest verification results and scope notes
+
+The subdirectories are the development source of truth. Release automation may publish each one as its own repository; generated ZIP files are not maintained in Git.
+
 ---
 
 # 2. Three-Layer Architecture

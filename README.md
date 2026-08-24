@@ -1465,9 +1465,18 @@ No separate state file is required.
 
 ## GCP
 
-Use the simplest supported declarative GCP IaC mechanism that preserves the same monkeyOS runtime contract.
+Use **Google Cloud Infrastructure Manager with Terraform**.
 
-Where appropriate, use Google Cloud's managed infrastructure tooling rather than introducing a monkeyOS-owned state backend.
+For example:
+
+```text
+infrastructure/gcp/
+└── main.tf
+```
+
+Infrastructure Manager owns deployment revisions and managed Terraform state in Google Cloud's control plane.
+
+No monkeyOS-managed infrastructure state backend is required.
 
 The implementation detail may differ from AWS/Azure.
 
@@ -1602,7 +1611,7 @@ Azure
 → Azure Resource Manager deployment/resource state
 
 GCP
-→ provider-native / managed IaC state
+→ Infrastructure Manager deployment revisions and managed Terraform state
 ```
 
 The principle is:
@@ -1962,7 +1971,7 @@ A monkeyOS organization installation provides:
 
 ✓ AWS CloudFormation
 ✓ Azure Bicep
-✓ GCP provider-native/managed declarative IaC
+✓ GCP Infrastructure Manager with Terraform
 ✓ dedicated runtime network
 ✓ application subnet
 ✓ firewall/security rules
@@ -2036,7 +2045,7 @@ After this, application development is self-service.
  └── infrastructure/
        ├── aws/       → CloudFormation
        ├── azure/     → Bicep
-       └── gcp/       → native/managed IaC
+       └── gcp/       → Infrastructure Manager
         │
         ▼
  dedicated runtime network
@@ -2172,7 +2181,7 @@ Data architecture:
 
 > **`main` is source; production is an explicit, authorized promotion of an immutable tested artifact.**
 
-> **Use provider-native declarative infrastructure tooling where practical: CloudFormation on AWS, Bicep on Azure, and native/managed declarative IaC on GCP.**
+> **Use provider-native declarative infrastructure tooling: CloudFormation on AWS, Bicep on Azure, and Infrastructure Manager with Terraform on GCP.**
 
 > **Infrastructure state should remain with the cloud provider control plane wherever possible rather than introducing a monkeyOS-owned state backend.**
 

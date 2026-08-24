@@ -1218,7 +1218,7 @@ Secret values are never displayed.
 # 32. Standard Application Stack
 
 ```text
-Runtime/package manager  Bun 1.4.x
+Runtime/package manager  latest stable Bun
 Language                 strict TypeScript
 
 Frontend                 React 19
@@ -1382,9 +1382,9 @@ production build
 ↓
 Playwright
 ↓
-ARM64 Docker build
+selected-architecture Docker build
 ↓
-ARM64 GHCR publish
+selected-architecture GHCR publish
 ```
 
 CI also validates changelog/version consistency.
@@ -1395,9 +1395,9 @@ Successful CI produces:
 ghcr.io/<organization>/<repository>:<git-sha>
 ```
 
-The image targets Linux ARM64. It is built once, tested once, security checked once, and deployed unchanged.
+The image targets the organization-selected Linux runtime architecture. It is built once, tested once, security checked once, and deployed unchanged.
 
-Application packages use compatible semantic-version ranges while `bun.lock` records the exact tested resolution. Native Dependabot support refreshes Bun packages, container bases, and GitHub Actions through reviewed commits. Workflows use Bun `1.4.x`, current action major channels, and Pi `@latest` so patch constants are not duplicated in scripts. A deployment never resolves dependencies or rebuilds; a compatible dependency refresh creates and validates a new immutable SHA artifact.
+Application packages use compatible semantic-version ranges while `bun.lock` records the exact tested resolution. Native Dependabot support refreshes Bun packages, container bases, and GitHub Actions through reviewed commits. Workflows install the latest stable Bun, current action major channels, and Pi `@latest`; the Dockerfile uses Bun's stable moving image tag, so runtime patch constants are not duplicated in scripts. A deployment never resolves dependencies or rebuilds; a dependency or toolchain refresh creates and validates a new immutable SHA artifact.
 
 ---
 
@@ -1444,7 +1444,9 @@ monkeyos-platform/
 
 Each provider folder defines one standard production runtime pool.
 
-Every template exposes host count, instance/VM type, boot-volume size/type, operating-system image, network/subnet names, and CIDR ranges as provider inputs rather than requiring edits to resource definitions. The default pool has two hosts, but any positive supported host count is valid. Production compute and application images are ARM64.
+Every template exposes host count, instance/VM type, boot-volume size/type, operating-system image, network/subnet names, and CIDR ranges as provider inputs rather than requiring edits to resource definitions. The default pool has two hosts, but any positive supported host count is valid.
+
+The organization variable `RUNTIME_ARCH` selects `arm64` or `amd64` and defaults to `arm64`. `amd64` is the standard OCI architecture name for x86-64 processors from both AMD and Intel. The same value must drive provider compute/image defaults, the CI image platform, Kamal's builder architecture, deployment verification, and application production configuration. Changing it is a coordinated platform operation that provisions compatible hosts and publishes a newly tested immutable image; applications cannot override it.
 
 ## AWS
 
@@ -1513,7 +1515,7 @@ production/default
 The host count is configurable and defaults to two. Each host must be:
 
 ```text
-Linux ARM64
+Linux matching RUNTIME_ARCH
 Docker-capable
 reachable by trusted deployment
 able to reach Supabase
@@ -1535,7 +1537,7 @@ monkeyOS production network
 ├── application subnet
 ├── routing / internet egress
 ├── firewall / security rules
-└── configurable ARM64 runtime hosts
+└── configurable architecture-matched runtime hosts
 ```
 
 V1 intentionally uses:
@@ -1543,7 +1545,7 @@ V1 intentionally uses:
 ```text
 1 dedicated network
 1 application subnet
-N interchangeable ARM64 hosts (default 2)
+N interchangeable architecture-matched hosts (default 2)
 ```
 
 No per-app subnets, Kubernetes, service mesh, complex peering, or multi-tier orchestration are required.
@@ -1706,7 +1708,7 @@ The protected GitHub environment variable `RUNTIME_HOST` contains the unique sem
 app-prod-01.example.com;app-prod-02.example.com;app-prod-03.example.com
 ```
 
-Every standard app runs on every configured host. The application cannot set or override `RUNTIME_HOST`.
+Every standard app runs on every configured host. The protected `RUNTIME_ARCH` value selects the pool and image architecture (`arm64` by default, or `amd64` for AMD/Intel x86-64). The application cannot set or override `RUNTIME_HOST` or `RUNTIME_ARCH`.
 
 There is no:
 
@@ -1775,6 +1777,7 @@ The application cannot choose:
 ```text
 target hosts
 runtime pool
+runtime architecture
 domain
 SSH target
 Docker privileges
@@ -1937,12 +1940,12 @@ Every new monkeyOS app starts with:
 
 ✓ components.json + shadcn-first standard components
 ✓ responsive shadcn Sidebar application shell
-✓ Bun 1.4.x + compatible dependency maintenance
+✓ latest stable Bun + compatible dependency maintenance
 ✓ tests
 ✓ code-review loop
 ✓ security-review loop
 ✓ central CI
-✓ immutable ARM64 GHCR artifact
+✓ immutable architecture-matched GHCR artifact
 ✓ explicit protected production deployment
 ```
 
@@ -1981,8 +1984,8 @@ A monkeyOS organization installation provides:
 ✓ application subnet
 ✓ firewall/security rules
 ✓ configurable HA host count, default two
-✓ configurable network, ARM64 compute/image, and volume inputs
-✓ ARM64 Docker-ready Linux hosts
+✓ configurable network, architecture-aware compute/image, and volume inputs
+✓ ARM64-default, AMD64-capable Docker-ready Linux hosts
 ✓ no monkeyOS-managed infrastructure state backend
 
 ✓ Cloudflare wildcard ingress
@@ -2060,7 +2063,7 @@ After this, application development is self-service.
         │
         │
         ▼
- configurable ARM64 host pool
+ configurable architecture-matched host pool
  prod-01 ... prod-N
 ```
 
@@ -2184,7 +2187,7 @@ Data architecture:
 
 > **shadcn/ui is the primary application component system, including the shell; standard components are added and adapted in place rather than recreated in a parallel library.**
 
-> **Bun stays on the 1.4.x compatibility line, compatible dependency and action releases are maintained automatically through semantic ranges and Dependabot, and deployment always promotes the exact tested ARM64 artifact.**
+> **CI and containers use the latest stable Bun, compatible dependency and action releases are maintained automatically through semantic ranges and Dependabot, and deployment always promotes the exact tested architecture-matched artifact.**
 
 > **Central workflows and skills let platform improvements propagate across applications.**
 
@@ -2200,6 +2203,6 @@ Data architecture:
 
 > **Infrastructure provisioning owns the runtime foundation; Kamal owns the application lifecycle.**
 
-> **The runtime is a small configurable HA cell of interchangeable ARM64 hosts, not a scheduler. The protected semicolon-separated RUNTIME_HOST list defines the pool; scale vertically before adding orchestration complexity.**
+> **The runtime is a small configurable HA cell of interchangeable architecture-matched hosts, not a scheduler. The protected semicolon-separated `RUNTIME_HOST` list defines the pool, while `RUNTIME_ARCH` selects `arm64` by default or `amd64` for AMD/Intel x86-64; scale vertically before adding orchestration complexity.**
 
 > **Keep monkeyOS deliberately simple and avoid creating platform-owned services, databases, registries, or abstractions until a concrete requirement justifies them.**

@@ -1,6 +1,6 @@
 -- monkeyOS application baseline. Canonical source: monkeyos-platform/supabase/baseline.
--- Synchronized verbatim into every application by `bun run platform:sync`; never edit it in an
--- application repository. `bun run audit:repository` verifies the checksum.
+-- Copied verbatim into every application's supabase/migrations; never edit it in an application
+-- repository. `bun run audit:repository` verifies it against .monkeyos/baseline.manifest.json.
 --
 -- Every application owns one Supabase project, so it owns the default `public` schema. No
 -- identifier below names the application: this file is byte-identical across every monkeyOS app,
@@ -33,23 +33,24 @@ create table public.members (
 
 create index members_created_by_idx on public.members(created_by);
 
+-- Both predicates are false rather than null for an unauthenticated caller: `user_id` is the primary
+-- key, so `user_id = null` matches no row and `exists` returns false without a null guard.
+--
 -- `is_member` has no caller in this baseline: it exists so an application-owned table can write
 -- `using ((select public.is_member()))` instead of restating the membership subquery per policy.
 create function public.is_member()
 returns boolean language sql stable security definer set search_path = ''
 as $$
-  select (select auth.uid()) is not null
-    and exists (select 1 from public.members where user_id = (select auth.uid()));
+  select exists (select 1 from public.members where user_id = (select auth.uid()));
 $$;
 
 create function public.is_admin()
 returns boolean language sql stable security definer set search_path = ''
 as $$
-  select (select auth.uid()) is not null
-    and exists (
-      select 1 from public.members
-      where user_id = (select auth.uid()) and role = 'admin'
-    );
+  select exists (
+    select 1 from public.members
+    where user_id = (select auth.uid()) and role = 'admin'
+  );
 $$;
 
 create function public.protect_last_admin()
@@ -75,10 +76,12 @@ declare
   matched_user_id uuid;
   added public.members;
 begin
-  if (select auth.uid()) is null or not public.is_admin() then
+  if not public.is_admin() then
     raise exception 'not authorized' using errcode = '42501';
   end if;
-  if target_email <> btrim(target_email) or target_email !~ '^[^@[:space:]]+@[^@[:space:]]+$' then
+  -- Anchored, and whitespace is excluded on both sides of the `@`, so this also rejects an address
+  -- that is padded rather than merely misshapen.
+  if target_email !~ '^[^@[:space:]]+@[^@[:space:]]+$' then
     raise exception 'invalid exact email' using errcode = '22023';
   end if;
   if target_role not in ('admin', 'member') then

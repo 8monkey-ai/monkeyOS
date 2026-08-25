@@ -8,7 +8,7 @@
 -- Roles are not named after the application. Each application owns its own Supabase project, so
 -- these names are unique where they exist. A role created inside a *foreign* source database to
 -- receive a cross-domain grant is a different role and must stay named after the consuming
--- repository; see cross-domain-contracts.sql.
+-- repository; see cross-domain-access.sql.
 begin;
 
 do $roles$
@@ -43,19 +43,18 @@ insert into supabase_migrations.schema_migrations (version, name)
 values ('__BASELINE_VERSION__', '__BASELINE_NAME__')
 on conflict (version) do nothing;
 
-insert into public.members(user_id, role, created_by)
-select id, 'admin', null from auth.users where lower(email) = lower(__INITIAL_ADMIN_EMAIL_SQL__)
-on conflict (user_id) do update set role = 'admin';
-
+-- One lookup, then insert. A bare `insert ... select` would match no row and succeed silently when
+-- the address has no Auth user, so the failure is raised where the address is resolved.
 do $admin$
+declare
+  admin_id uuid;
 begin
-  if not exists (
-    select 1 from public.members m
-    join auth.users u on u.id = m.user_id
-    where lower(u.email) = lower(__INITIAL_ADMIN_EMAIL_SQL__) and m.role = 'admin'
-  ) then
+  select id into admin_id from auth.users where lower(email) = lower(__INITIAL_ADMIN_EMAIL_SQL__);
+  if admin_id is null then
     raise exception 'Initial admin must already exist in Supabase Auth';
   end if;
+  insert into public.members(user_id, role) values (admin_id, 'admin')
+  on conflict (user_id) do update set role = 'admin';
 end
 $admin$;
 

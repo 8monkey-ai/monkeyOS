@@ -12,7 +12,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 - Keep dependencies on compatible semver ranges and commit `bun.lock`. Let Dependabot refresh compatible dependency and action versions; do not hard-code patch versions in scripts or workflows.
 - Prefer SOLID, cohesive modules and direct code. Add abstractions only when they remove demonstrated duplication or enforce a real boundary.
 - Fix lint findings at their cause. Use a narrow explained suppression only when an external or generated boundary cannot be expressed safely; unused suppressions are errors. Do not enable broad style/pedantic/restriction/nursery or `react-perf` policies in place of evidence.
-- Keep the React Router project conventional: standard package scripts, root, route modules, type generation, and Vite configuration. Do not add a parallel browser entry, development orchestrator, or custom bundling scheme.
+- Keep the React Router project conventional: standard package scripts, root, route modules, type generation, and Vite configuration. Playwright owns its test-server lifecycle, and the central workflow owns production-image smoke orchestration. Do not add a parallel browser entry, development/container-test orchestrator, or custom bundling scheme.
 - Keep React Compiler on the `vite:react-compiler` transform selected from `@vitejs/plugin-react`, with `oxc-transform-react` and `compiler: true`. React Router owns JSX and Fast Refresh; do not add the full React plugin pipeline beside it or restore a Babel compiler pipeline.
 
 ## UI and state

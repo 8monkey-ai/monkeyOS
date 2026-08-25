@@ -1413,6 +1413,8 @@ Playwright
 ↓
 selected-architecture Docker build
 ↓
+Playwright smoke test against the built image
+↓
 selected-architecture GHCR publish
 ```
 
@@ -1425,6 +1427,8 @@ ghcr.io/<organization>/<repository>:<git-sha>
 ```
 
 The image targets the organization-selected Linux runtime architecture. It is built once, tested once, security checked once, and deployed unchanged.
+
+Playwright directly owns the ordinary development-server lifecycle and receives explicit non-secret test configuration. Production-image startup, readiness, failure logs, and cleanup remain inside the central reusable workflow, which runs the same browser suite against the built image. Applications do not carry custom development-test or container-smoke orchestration scripts.
 
 Application packages use compatible semantic-version ranges while `bun.lock` records the exact tested resolution. Native Dependabot support refreshes Bun packages, the moving Bun container base, and GitHub Actions through reviewed commits. Workflows install the latest stable Bun, current action major channels, and Pi `@latest`; runtime patch constants are not duplicated in scripts. A deployment never resolves dependencies or rebuilds; a dependency or toolchain refresh creates and validates a new immutable SHA artifact.
 

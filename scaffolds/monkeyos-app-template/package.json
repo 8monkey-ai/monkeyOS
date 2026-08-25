@@ -1,11 +1,10 @@
 {
   "name": "monkeyos-app-template",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "BUN_OPTIONS=--conditions=development react-router dev",
-    "dev:test": "bun scripts/dev-test.ts",
     "start": "bun server.ts",
     "build": "react-router build",
     "format": "oxfmt .",
@@ -23,7 +22,6 @@
     "skills:sync": "bun scripts/sync-platform-skills.ts",
     "ui:add": "shadcn add",
     "audit:repository": "bun scripts/repository-audit.ts",
-    "test:container": "bun scripts/test-container.ts",
     "check": "bun run format:check && bun run typegen && bun run lint && bun test && bun run build && bun run audit:repository --deterministic"
   },
   "dependencies": {

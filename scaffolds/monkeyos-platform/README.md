@@ -1,6 +1,6 @@
 # monkeyOS organization platform
 
-Version **2.7.0**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
+Version **2.7.1**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
 
 monkeyOS deliberately owns no database or service for applications, users, memberships, audit, domains, catalogs, deployments, workflows, or infrastructure state. GitHub, Supabase Auth, each app schema, Cloudflare, and the selected cloud control plane remain authoritative.
 
@@ -45,7 +45,7 @@ Provisioning writes no registry record. It configures state where it belongs: Su
 
 ## Central workflows
 
-- `ci.yml`: deterministic quality, local Supabase policy/audit checks, responsive Playwright, selected-architecture Docker smoke test, and one GHCR image tagged by full Git SHA.
+- `ci.yml`: deterministic quality, local Supabase policy/audit checks, responsive Playwright, centrally orchestrated selected-architecture image testing through the same browser suite, and one GHCR image tagged by full Git SHA.
 - `deploy.yml`: protected environment gate, successful-CI and image verification, trusted temporary Kamal configuration, flexible-pool promotion without rebuild.
 - `audit.yml`: deterministic contract checks plus the latest Pi in read-only mode, with explicit organization-controlled provider/model and protected API credentials.
 - `provision-app.yml`: Platform Admin bootstrap; never called by an app.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.1
+
+- Centralized production-image startup, readiness, browser smoke testing, failure logs, and cleanup in the reusable CI workflow.
+- Reused the application's Playwright suite against the immutable image instead of requiring application-owned container orchestration, with deterministic audits preventing those wrappers from returning.
+
 ## 2.7.0
 
 - Made the Oxc Rust implementation of React Compiler the centrally audited application standard while preserving React Router's JSX and Fast Refresh ownership.

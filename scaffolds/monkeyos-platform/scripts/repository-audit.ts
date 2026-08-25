@@ -190,6 +190,14 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   if (Object.values(packageJson.scripts ?? {}).some((script) => script.includes("tsc --noEmit"))) {
     findings.push({ level: "BLOCKING", message: "Oxlint type checking replaces tsc --noEmit" });
   }
+  for (const script of ["dev:test", "test:container"]) {
+    if (script in (packageJson.scripts ?? {})) {
+      findings.push({
+        level: "BLOCKING",
+        message: `${script} must not restore application-owned test orchestration`,
+      });
+    }
+  }
   const tsconfigPath = join(root, "tsconfig.json");
   if (await exists(tsconfigPath)) {
     const tsconfig = TsconfigSchema.parse(JSON.parse(await readFile(tsconfigPath, "utf8")));
@@ -244,6 +252,8 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "src/app.tsx",
     "server/index.ts",
     "scripts/dev.ts",
+    "scripts/dev-test.ts",
+    "scripts/test-container.ts",
   ]) {
     if (await exists(join(root, legacy))) {
       findings.push({

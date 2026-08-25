@@ -5,8 +5,8 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 
 ## Maintained scaffold sources
 
-- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.7.0
-- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.7.0
+- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.7.1
+- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.7.1
 
 ## Results
 
@@ -19,13 +19,13 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 | Oxc Rust React Compiler | PASS — official Vite React compiler transform with `compiler: true`; React Router retains JSX/Fast Refresh; compiled client output contains React memo-cache runtime code; direct Babel compiler dependencies removed |
 | Official shadcn/ui integration | PASS — official `shadcn@latest` CLI; Base UI `base-nova` preset; CLI-generated sidebar and standard registry primitives |
 | Local Supabase migration, deterministic seed, schema lint and pgTAP RLS/audit tests | PASS — no schema errors; 12 assertions |
-| Playwright responsive coverage | PASS — 9 tests across mobile, tablet and desktop, including login labels, responsive navigation and the Framework Mode health resource route |
+| Playwright responsive coverage | PASS — 9 development-server tests across mobile, tablet and desktop; 4 production-image smoke tests covering login, authorization, immutable identity and generated-asset caching |
 | GitHub workflow YAML parsing | PASS |
 | AWS CloudFormation validation (current `cfn-lint`) | PASS |
 | Azure Bicep compilation (official Bicep 0.46.1) | PASS |
 | GCP Infrastructure Manager Terraform formatting/init/validation | PASS |
 | Moving runtime-image portability | PASS — current `oven/bun:alpine` supports Linux ARM64 and x64/AMD64; no Node base is present |
-| Local selected-architecture image build | PASS — fresh Bun-only Linux ARM64 image built, launched as non-root `bun`, and passed its native-server health smoke test |
+| Local selected-architecture image build | PASS — fresh Bun-only Linux ARM64 image built, launched as non-root `bun`, and passed the central workflow's four-test Playwright production smoke path |
 | Git-tracked source exclusions and credential-pattern scan | PASS |
 
 ## Revised contracts
@@ -37,6 +37,7 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 - Both scaffolds use `oxlint-tsgolint` with `typeAware` and `typeCheck` enabled. Oxlint reported an intentional TS2322 probe, so the redundant `tsc --noEmit` pass was removed. React Router type generation remains an explicit prerequisite, and the TypeScript projects now cover the Bun production server and platform runtime tests.
 - Both scaffolds explicitly enable Oxlint's high-signal `correctness` and `suspicious` categories and reject unused disable directives. The app additionally enables native React and accessibility rules plus the targeted stable-Context-value check; obsolete JSX-scope linting is disabled for the modern transform, and broad `react-perf` heuristics remain off under React Compiler.
 - React Compiler now uses `oxc-transform-react` through the `vite:react-compiler` transform supplied by `@vitejs/plugin-react`. Loading the full React plugin beside React Router duplicated the development refresh runtime, so the scaffold selects only its compiler transform; a fail-fast config guard and both repository audits preserve that boundary.
+- Playwright now starts the ordinary React Router development command directly with an explicit non-secret local Supabase fixture. The application-owned `dev-test.ts` and `test-container.ts` wrappers and their package scripts were removed. Central CI owns immutable-image startup, readiness, failure logs and cleanup, then reruns the desktop browser suite against the production image; deterministic audits reject restoring those wrappers.
 - Both scaffolds commit an Oxfmt configuration with the standard 100-column policy. The app also sorts Tailwind v4 classes in attributes and `cn`/`cva` calls. Deterministic app audits enforce both tool configurations.
 - Lint cleanup replaced unchecked JSON and external-response assertions with Zod parsing, associated every login/access label with its control, and moved responsive media-query state to `useSyncExternalStore` without changing Supabase, RLS, membership, or audit behavior.
 - Both `tsconfig.json` files use the TypeScript 7/Bun ESM baseline with `ESNext`, preserved modules, bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. Unused legacy compatibility options were removed, and deterministic app audits enforce the baseline.

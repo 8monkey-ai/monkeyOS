@@ -1,6 +1,6 @@
 # monkeyOS application starter
 
-Version **2.7.0**. This clean application foundation starts with login, protected routes, role-managed app-local access, and an audit trail, but deliberately invents no placeholder business domain, table, record, or workflow. Repository provisioning replaces the starter identity with the target repository-derived schema, roles, image, hostname, and Bun secret namespace.
+Version **2.7.1**. This clean application foundation starts with login, protected routes, role-managed app-local access, and an audit trail, but deliberately invents no placeholder business domain, table, record, or workflow. Repository provisioning replaces the starter identity with the target repository-derived schema, roles, image, hostname, and Bun secret namespace.
 
 ## Start
 
@@ -61,6 +61,8 @@ This is a standard React Router Framework Mode application. Its scripts use the 
 Use the latest stable Bun as the JavaScript runtime, package manager, application server, and test runner. Compatible package ranges are declared in `package.json`, exact tested resolutions remain in `bun.lock`, and Dependabot keeps packages, the moving Bun container base, and GitHub Actions current.
 
 React Router type generation runs before Oxlint. Oxlint's type-aware and type-check modes then run lint rules and TypeScript compiler diagnostics in one pass; there is no separate `tsc --noEmit` pass.
+
+Playwright starts the ordinary development command directly with explicit, non-secret local test configuration. The central CI workflow—not an application-owned orchestration script—starts the built production image and runs the same browser tests against it before publication.
 
 The committed lint policy enables the high-signal `correctness` and `suspicious` categories plus React and accessibility analysis, rejects stale suppressions, and checks stable Context values. Broad style, pedantic, restriction, nursery, and heuristic `react-perf` rules stay off. React Compiler owns routine memoization. Oxfmt uses its standard 100-column conventions and sorts Tailwind v4 classes in ordinary attributes and `cn`/`cva` calls.
 

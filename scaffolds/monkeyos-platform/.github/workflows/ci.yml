@@ -50,8 +50,37 @@ jobs:
           pull: true
           platforms: linux/${{ steps.runtime.outputs.arch }}
           tags: ${{ steps.image.outputs.ref }}
-      - name: Container smoke test
-        run: bun run test:container "${{ steps.image.outputs.ref }}"
+      - name: Start immutable image for smoke testing
+        env:
+          APP_IMAGE: ${{ steps.image.outputs.ref }}
+          GIT_SHA: ${{ github.sha }}
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+        run: >-
+          docker run --detach --rm --name monkeyos-container-smoke
+          --publish 127.0.0.1:3000:3000
+          --env APP_ENV=production
+          --env GIT_SHA
+          --env SUPABASE_URL
+          --env SUPABASE_PUBLISHABLE_KEY
+          "$APP_IMAGE"
+      - name: Wait for immutable image
+        run: >-
+          curl --fail --silent --show-error
+          --retry 30 --retry-all-errors --retry-delay 1
+          http://127.0.0.1:3000/healthz
+      - name: Smoke test immutable image
+        env:
+          EXPECTED_GIT_SHA: ${{ github.sha }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          PLAYWRIGHT_PRODUCTION_IMAGE: "true"
+        run: bun run test:e2e --project=desktop
+      - name: Show immutable image logs after failure
+        if: failure()
+        run: docker logs monkeyos-container-smoke || true
+      - name: Stop immutable image
+        if: always()
+        run: docker stop monkeyos-container-smoke || true
       - name: Authenticate to GHCR
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: docker/login-action@v4

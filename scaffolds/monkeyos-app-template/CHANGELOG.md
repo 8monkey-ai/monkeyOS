@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.1
+
+- Removed the custom development-test and container-smoke orchestration scripts.
+- Let Playwright start the ordinary React Router development command with explicit local test configuration and target externally started production images.
+- Reused the browser suite to validate the built image, immutable identity, and generated-asset caching before publication.
+
 ## 2.7.0
 
 - Replaced the Babel React Compiler pipeline with the Oxc Rust compiler transform from the official Vite React plugin.

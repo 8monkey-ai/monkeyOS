@@ -34,7 +34,21 @@ test("health endpoint reports the immutable application identity", async ({ requ
   expect(response.ok()).toBe(true);
   await expect(response.json()).resolves.toMatchObject({
     status: "ok",
-    version: "2.7.0",
-    sha: "test",
+    version: "2.7.1",
+    sha: process.env.EXPECTED_GIT_SHA ?? "test",
   });
+});
+
+test("production server caches generated assets immutably", async ({ request }) => {
+  test.skip(
+    process.env.PLAYWRIGHT_PRODUCTION_IMAGE !== "true",
+    "Only the built production image serves generated assets",
+  );
+  const document = await request.get("/login");
+  expect(document.ok()).toBe(true);
+  const assetPath = (await document.text()).match(/\/assets\/[^"']+\.js/)?.[0];
+  if (!assetPath) throw new Error("React Router document did not reference a generated asset");
+  const asset = await request.get(assetPath);
+  expect(asset.ok()).toBe(true);
+  expect(asset.headers()["cache-control"]).toContain("immutable");
 });

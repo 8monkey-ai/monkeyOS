@@ -25,6 +25,7 @@
   },
   "include": [
     "src",
+    "server.ts",
     "scripts",
     "tests",
     ".react-router/types/**/*",

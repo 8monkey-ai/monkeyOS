@@ -36,6 +36,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "package.json",
     "bun.lock",
     "bunfig.toml",
+    ".oxlintrc.json",
     "Dockerfile",
     "server.ts",
     "react-router.config.ts",
@@ -92,7 +93,8 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     dev: "BUN_OPTIONS=--conditions=development react-router dev",
     build: "react-router build",
     start: "bun server.ts",
-    typecheck: "react-router typegen && tsc --noEmit",
+    typegen: "react-router typegen",
+    lint: "oxlint --deny-warnings .",
   })) {
     if (packageJson.scripts?.[script] !== command) {
       findings.push({
@@ -100,6 +102,21 @@ export async function auditRepository(root: string): Promise<Finding[]> {
         message: `${script} must use the standard React Router Framework Mode command`,
       });
     }
+  }
+  const oxlint = JSON.parse(await readFile(join(root, ".oxlintrc.json"), "utf8")) as {
+    options?: { typeAware?: boolean; typeCheck?: boolean };
+  };
+  if (!oxlint.options?.typeAware || !oxlint.options.typeCheck) {
+    findings.push({
+      level: "BLOCKING",
+      message: "Oxlint must run type-aware rules and TypeScript compiler diagnostics",
+    });
+  }
+  if (!packageJson.devDependencies?.["oxlint-tsgolint"]) {
+    findings.push({ level: "BLOCKING", message: "Missing oxlint-tsgolint" });
+  }
+  if (Object.values(packageJson.scripts ?? {}).some((script) => script.includes("tsc --noEmit"))) {
+    findings.push({ level: "BLOCKING", message: "Oxlint type checking replaces tsc --noEmit" });
   }
   const bunfig = await readFile(join(root, "bunfig.toml"), "utf8");
   if (!/^\[run\]\s*$[\s\S]*^bun\s*=\s*true\s*$/m.test(bunfig)) {

@@ -7,7 +7,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 ## Non-negotiable stack
 
 - Latest stable Bun is the only JavaScript runtime, package manager, application server, and test runner; do not pin a Bun minor line or add Node, npm, pnpm, yarn, or another runtime/package manager.
-- Strict TypeScript, React 19 with React Compiler, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, oxfmt/oxlint, Bun test, and Playwright.
+- Strict TypeScript, React 19 with React Compiler, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, oxfmt, type-aware Oxlint with compiler diagnostics, Bun test, and Playwright.
 - Keep dependencies on compatible semver ranges and commit `bun.lock`. Let Dependabot refresh compatible dependency and action versions; do not hard-code patch versions in scripts or workflows.
 - Prefer SOLID, cohesive modules and direct code. Add abstractions only when they remove demonstrated duplication or enforce a real boundary.
 - Keep the React Router project conventional: standard package scripts, root, route modules, type generation, and Vite configuration. Do not add a parallel browser entry, development orchestrator, or custom bundling scheme.
@@ -41,7 +41,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 
 1. Inspect the affected code, tests, migrations, `BUSINESS.md`, and routed business skills.
 2. Make the smallest coherent change without editing platform-managed files.
-3. Run focused tests while iterating, then `bun run check`; run database and Playwright gates whenever affected.
+3. Run focused tests while iterating, then `bun run check`; its Oxlint gate owns both lint rules and TypeScript compiler diagnostics. Run database and Playwright gates whenever affected.
 4. Perform review and security review, fix all blocking findings, and rerun affected gates.
 5. Use the `commit` skill so business contracts, changelog/version, tests, review, security review, commit, and push remain one workflow.
 

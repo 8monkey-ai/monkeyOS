@@ -1,15 +1,14 @@
 {
   "name": "monkeyos-platform",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "type": "module",
   "scripts": {
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings .",
-    "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "check": "bun run format:check && bun run lint && bun run typecheck && bun test",
+    "check": "bun run format:check && bun run lint && bun test",
     "identity": "bun provisioning/identity-cli.ts",
     "provision": "bun provisioning/provision-app.ts",
     "skills:sync": "bun scripts/sync-skills.ts",
@@ -19,6 +18,7 @@
     "@types/bun": "^1.4.0",
     "oxfmt": "^0.64.0",
     "oxlint": "^1.79.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2",
     "zod": "^4.4.3"
   }

@@ -1,8 +1,9 @@
 import { createRequestHandler, type ServerBuild } from "react-router";
-import * as serverBuild from "./build/server/index.js";
 
 const clientRoot = `${import.meta.dir}/build/client`;
-const handleFrameworkRequest = createRequestHandler(serverBuild as ServerBuild, "production");
+const serverBuildPath = "./build/server/index.js";
+const serverBuild = (await import(serverBuildPath)) as unknown as ServerBuild;
+const handleFrameworkRequest = createRequestHandler(serverBuild, "production");
 
 async function staticResponse(request: Request): Promise<Response | undefined> {
   if (request.method !== "GET" && request.method !== "HEAD") return;

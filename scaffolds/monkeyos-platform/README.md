@@ -83,6 +83,8 @@ Validate each provider definition with its native tooling before deployment. Inf
 
 Use the latest stable Bun for all JavaScript execution, package management, serving, and tests. Dependencies use compatible semver ranges while committed lockfiles preserve exact tested builds. Dependabot natively maintains Bun packages, the moving Bun container base, and GitHub Actions. Workflows use current action major channels and `setup-bun` latest, so toolchain updates do not require script edits. Deployment always promotes the already-tested immutable image and never resolves dependencies again.
 
+Oxlint runs type-aware rules and TypeScript compiler diagnostics together through `oxlint-tsgolint`. Applications generate React Router types first; neither scaffold needs a separate `tsc --noEmit` pass.
+
 ## Current implementation references
 
 - GitHub reusable workflows, deployments/environments, and rulesets: <https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows>, <https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments>, <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets>

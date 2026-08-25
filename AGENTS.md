@@ -28,7 +28,7 @@
 1. Update the platform scaffold first when a shared contract, workflow, or skill changes.
 2. Synchronize central skills into the app scaffold and update both audit implementations when a cross-repository invariant changes.
 3. Update the canonical README when the platform contract changes.
-4. Run each scaffold's formatting, lint, typecheck, unit tests, build/audit where applicable, plus affected database, browser, infrastructure, and deployment checks.
+4. Run each scaffold's formatting, Oxlint type-aware compiler diagnostics, unit tests, build/audit where applicable, plus affected database, browser, infrastructure, and deployment checks.
 5. Update versions, changelogs, and `validation/VALIDATION_REPORT.md` only after the implementation passes.
 
 Do not commit dependency directories, build output, browser artifacts, local Supabase state, Terraform working directories, credentials, or release ZIPs.

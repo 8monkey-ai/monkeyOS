@@ -1,0 +1,7 @@
+{
+  "ignorePatterns": ["src/lib/database.types.ts"],
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  }
+}

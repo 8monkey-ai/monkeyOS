@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0
+
+- Replaced the separate `tsc --noEmit` pass with Oxlint type-aware linting and compiler diagnostics.
+- Kept React Router type generation as an explicit prerequisite and expanded project coverage to the Bun server.
+
 ## 2.3.0
 
 - Restored ordinary React Router package scripts and isolated the current Bun development-condition workaround to the `dev` command.

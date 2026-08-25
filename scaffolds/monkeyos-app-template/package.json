@@ -1,6 +1,6 @@
 {
   "name": "monkeyos-app-template",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,8 +10,8 @@
     "build": "react-router build",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
+    "typegen": "react-router typegen",
     "lint": "oxlint --deny-warnings .",
-    "typecheck": "react-router typegen && tsc --noEmit",
     "test": "bun test",
     "test:e2e": "playwright test",
     "db:start": "supabase start",
@@ -24,7 +24,7 @@
     "ui:add": "shadcn add",
     "audit:repository": "bun scripts/repository-audit.ts",
     "test:container": "bun scripts/test-container.ts",
-    "check": "bun run format:check && bun run lint && bun run typecheck && bun test && bun run build && bun run audit:repository --deterministic"
+    "check": "bun run format:check && bun run typegen && bun run lint && bun test && bun run build && bun run audit:repository --deterministic"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -58,6 +58,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "oxfmt": "^0.64.0",
     "oxlint": "^1.79.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "shadcn": "^4.19.0",
     "supabase": "^2.115.0",
     "tailwindcss": "^4.3.3",

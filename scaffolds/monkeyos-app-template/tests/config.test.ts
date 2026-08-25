@@ -17,6 +17,12 @@ describe("typed configuration", () => {
   });
 
   test("fails fast when required configuration is missing", async () => {
-    await expect(loadConfig({ mode: "test", explicit: {}, declarations: [] })).rejects.toThrow();
+    let failure: unknown;
+    try {
+      await loadConfig({ mode: "test", explicit: {}, declarations: [] });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(Error);
   });
 });

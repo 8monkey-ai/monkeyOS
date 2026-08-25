@@ -1259,7 +1259,7 @@ Schema                    SQL migrations
 ORM                       none
 
 Formatting               oxfmt
-Linting                  oxlint
+Linting + type checking  oxlint with type-aware compiler diagnostics
 
 Unit tests               Bun test
 E2E                      Playwright
@@ -1344,8 +1344,6 @@ format
 ↓
 lint
 ↓
-typecheck
-↓
 tests
 ↓
 build
@@ -1377,8 +1375,6 @@ The central workflow performs:
 format
 ↓
 lint
-↓
-typecheck
 ↓
 unit tests
 ↓

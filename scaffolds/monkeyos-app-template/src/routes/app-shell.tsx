@@ -12,7 +12,6 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 
 const pageLabels: Record<string, string> = {
   "/": "Overview",
-  "/audit": "Audit trail",
   "/access": "Access",
 };
 

@@ -1,6 +1,6 @@
 # monkeyOS application starter
 
-Version **2.8.0**. This clean application foundation starts with login, protected routes, role-managed app-local access, and an audit trail, but deliberately invents no placeholder business domain, table, record, or workflow.
+Version **2.9.0**. This clean application foundation starts with login, protected routes, and role-managed app-local access, but deliberately invents no placeholder business domain, table, record, or workflow.
 
 ## Identity
 
@@ -23,11 +23,11 @@ Synthetic local users (password `password123`):
 
 ## Login and access
 
-Supabase Auth owns identity. This app's `public.members` table owns authorization. RLS enforces access; hidden navigation is only a convenience. Admins use **Access** to add an already-existing Auth user by exact email, change `admin`/`member`, or remove access. There is no shared user directory and the browser cannot browse `auth.users`. Membership changes are always written to the app-local audit log.
+Supabase Auth owns identity. This app's `public.members` table owns authorization. RLS enforces access; hidden navigation is only a convenience. Admins use **Access** to add an already-existing Auth user by exact email, change `admin`/`member`, or remove access. There is no shared user directory and the browser cannot browse `auth.users`.
 
 ## Data ownership
 
-The application owns its Supabase project, migrations, members, audit log, and future business state. `supabase/migrations/20200101000000_monkeyos_baseline.sql` is platform-owned: never edit it, and add your own migrations alongside it. Because the application owns the default schema, row level security is what keeps a new table unreachable, and the audit fails any migration that creates a table without it. Local reset starts with deterministic synthetic Auth users and memberships and never depends on production data. Add synthetic business records only after a real process/module is defined; the scaffold contains no placeholder business state. It neither queries nor writes a monkeyOS platform database because no such state service exists.
+The application owns its Supabase project, migrations, members, and future business state. `supabase/migrations/20200101000000_monkeyos_baseline.sql` is platform-owned: never edit it, and add your own migrations alongside it. Because the application owns the default schema, row level security is what keeps a new table unreachable, and the audit fails any migration that creates a table without it. Local reset starts with deterministic synthetic Auth users and memberships and never depends on production data. Add synthetic business records only after a real process/module is defined; the scaffold contains no placeholder business state. It neither queries nor writes a monkeyOS platform database because no such state service exists.
 
 External dependencies are declared without values in `config/external-data-sources.json`, which starts empty. Declare a real dependency only when an owner confirms its purpose, source-of-truth boundary, and least-privilege read-only contract. External systems may remain remote in development; they are never migrated or cloned by this app.
 
@@ -41,7 +41,7 @@ Run `bun run secret:add <DECLARED_NAME>`. Input is hidden and stored in the OS c
 
 ## Server-state pattern
 
-Pages and visual components consume typed TanStack Query hooks; they do not call Supabase directly for routine server data. Each real business module owns stable query keys and `use...` query/mutation hooks, which own Supabase access, validated inputs, error propagation, and precise cache invalidation. PostgreSQL RLS remains authoritative. App-wide membership and audit examples follow this boundary in `src/hooks/` without inventing a business domain.
+Pages and visual components consume typed TanStack Query hooks; they do not call Supabase directly for routine server data. Each real business module owns stable query keys and `use...` query/mutation hooks, which own Supabase access, validated inputs, error propagation, and precise cache invalidation. PostgreSQL RLS remains authoritative. The app-wide membership hooks in `src/hooks/` follow this boundary without inventing a business domain.
 
 ## Common commands
 

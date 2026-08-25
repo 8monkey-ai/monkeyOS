@@ -164,7 +164,7 @@ Supabase Auth
 → identity
 
 the application Supabase project
-→ application state, permissions, audit history
+→ application state, permissions, business history
 
 Cloudflare
 → edge/routing state
@@ -492,7 +492,7 @@ It contains enforceable application-relevant rules:
 - SOLID-but-simple engineering standards
 - server, local, shared-client, and URL state ownership
 - business-contract loading and update rules
-- RLS, Auth, audit, external-data, and secret boundaries
+- RLS, Auth, external-data, and secret boundaries
 - compatible dependency and lockfile policy
 - testing, review, security-review, changelog, and version gates
 - centrally managed files that application work must not edit
@@ -794,10 +794,13 @@ Hiding UI elements is never considered sufficient authorization.
 
 # 19. Business Audit Trails
 
-Every application owns its own business audit history:
+The generic scaffold ships no audit table. Traceability is a business requirement, so it belongs to
+the module whose owners ask for it rather than to the foundation every application inherits.
+
+When a module does need it, the application owns that history in its own `public` schema:
 
 ```text
-finance.audit_log
+public.invoice_history
 ```
 
 A simple record can contain:
@@ -812,10 +815,9 @@ before
 after
 ```
 
-Meaningful events should be audited, including:
+Events worth recording are the ones the business would need to reconstruct, such as:
 
 ```text
-membership changes
 approvals
 important status changes
 financial changes
@@ -823,11 +825,15 @@ sensitive record changes
 material permission changes
 ```
 
+Capture the actor with `auth.uid()` from a `security definer` trigger, keep the table readable only
+under RLS, and grant the application role no write path to it.
+
 There is no global monkeyOS audit table.
 
-The mechanism should remain simple rather than becoming an event-sourcing framework.
+The mechanism should remain simple rather than becoming an event-sourcing framework, and it should
+not be added speculatively.
 
-> **Changes that matter to the business should be traceable.**
+> **Changes that matter to the business should be traceable — once someone has said which changes matter.**
 
 ---
 
@@ -1389,8 +1395,6 @@ migration tests
 ↓
 RLS / membership tests
 ↓
-audit tests
-↓
 seed/test-data validation
 ↓
 configuration-schema validation
@@ -1913,7 +1917,7 @@ They ask:
 
 > **Would we still consider this application secure and maintainable if we built it today?**
 
-They check dependencies, authentication, authorization, external access, RLS, audit coverage, data ownership, PII, local and production secret handling, frontend/API security, containers, GitHub Actions, deployment, and missing important tests.
+They check dependencies, authentication, authorization, external access, RLS, data ownership, PII, local and production secret handling, frontend/API security, containers, GitHub Actions, deployment, and missing important tests.
 
 Repository audits also check that every process/module is routed from `BUSINESS.md` and that business skills are not unreferenced, overlapping, contradictory, stale, or duplicated as process versions.
 
@@ -1948,10 +1952,6 @@ Every new monkeyOS app starts with:
 ✓ role changes
 ✓ access removal
 ✓ RLS-backed authorization
-
-✓ <app>.audit_log
-✓ membership-change auditing
-✓ business audit mechanism
 
 ✓ local Supabase
 ✓ deterministic synthetic seed data
@@ -2174,7 +2174,6 @@ Data architecture:
        finance     hr      ops
           │
           ├── members
-          ├── audit_log
           └── business data
 
           NO CENTRAL
@@ -2195,11 +2194,11 @@ Data architecture:
 
 > **Authentication is shared; application authorization is local and enforced by RLS.**
 
-> **Changes that matter to the business are audited by the application that owns them.**
+> **Traceability is a business requirement, not a default: the module whose owners ask for it owns the history.**
 
 > **Every application has an application-owned Business Application Contract system: `BUSINESS.md` contains the overall purpose and business map, while every process or module is defined in its own business skill from the beginning.**
 
-> **The generic scaffold invents no business domain. The first real module begins with named owners and an authoritative routed skill, then adds coherent schema, typed query hooks, RLS, audit, UI, and tests.**
+> **The generic scaffold invents no business domain. The first real module begins with named owners and an authoritative routed skill, then adds coherent schema, typed query hooks, RLS, UI, and tests.**
 
 > **Business skills describe current authoritative processes. Existing processes are updated in place; Git preserves history, and new skills are created only for genuinely new processes or modules.**
 

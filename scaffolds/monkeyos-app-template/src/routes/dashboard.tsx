@@ -9,7 +9,7 @@ const foundations = [
   },
   {
     title: "Own data locally",
-    detail: "Add only application-owned tables, migrations, RLS policies, audit events, and seeds.",
+    detail: "Add only application-owned tables, migrations, RLS policies, and seeds.",
     icon: Database,
   },
   {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
       <PageHeading
         eyebrow="Application foundation"
         title="Ready for the first real module."
-        detail="Authentication, app-local access, audit, configuration, and delivery are ready without inventing a placeholder business domain."
+        detail="Authentication, app-local access, configuration, and delivery are ready without inventing a placeholder business domain."
       />
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         {foundations.map(({ title, detail, icon: Icon }) => (

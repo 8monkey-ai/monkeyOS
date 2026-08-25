@@ -1,6 +1,6 @@
 # monkeyOS organization platform
 
-Version **2.7.1**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
+Version **2.9.0**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
 
 monkeyOS deliberately owns no database or service for applications, users, memberships, audit, domains, catalogs, deployments, workflows, or infrastructure state. GitHub, Supabase Auth, each app schema, Cloudflare, and the selected cloud control plane remain authoritative.
 
@@ -41,7 +41,7 @@ finance-reporting
 └── local secret service: monkeyOS:acme/finance-reporting
 ```
 
-Provisioning writes no registry record. It configures state where it belongs: Supabase schema/roles, app-local membership/audit foundations, and initial member; GitHub managed callers, ruleset, and protected environment; existing runtime-pool values in protected environment variables. It never invents business tables or records. The first real module begins only after its owners and rules are captured in `BUSINESS.md` and a routed application-owned skill.
+Provisioning writes no registry record. It configures state where it belongs: Supabase schema/roles, the app-local membership foundation, and initial member; GitHub managed callers, ruleset, and protected environment; existing runtime-pool values in protected environment variables. It never invents business tables or records. The first real module begins only after its owners and rules are captured in `BUSINESS.md` and a routed application-owned skill.
 
 ## Central workflows
 

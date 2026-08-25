@@ -30,8 +30,8 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 - Never expose secret/service-role keys, query or browse `auth.users` from the browser, use user-editable metadata for authorization, or weaken RLS to fix a client error.
 - Keep privileged functions `security definer` on an empty `search_path`, revoke default execution, validate `auth.uid()`, and grant the narrowest required operation—never to `anon` or `public`.
 - Never create or select a schema, and give every table `enable row level security` in the migration that creates it; RLS, not schema isolation, is the boundary. The baseline migration is platform-owned—never edit it.
-- The app owns the default `public` schema, its migrations, audit log, deterministic synthetic seed, and local tests. Never require production data locally.
-- This generic foundation owns Auth users, memberships, and audit only. Do not invent placeholder business tables, records, routes, or CRUD. Before adding the first real module, record its purpose, owners, rules, and acceptance scenarios in `BUSINESS.md` and a routed business skill.
+- The app owns the default `public` schema, its migrations, deterministic synthetic seed, and local tests. Never require production data locally.
+- This generic foundation owns Auth users and memberships only. Do not invent placeholder business tables, records, routes, or CRUD. Before adding the first real module, record its purpose, owners, rules, and acceptance scenarios in `BUSINESS.md` and a routed business skill.
 - Shared/external sources must be declared, least-privilege, and read-only by default. Do not clone, migrate, mutate, or silently broaden access to them.
 - Secrets never enter repository files, logs, command arguments, fixtures, or browser bundles. Use Bun.secrets locally, the protected production environment in GitHub, and the single Zod wrapper in `src/config.ts`.
 
@@ -39,7 +39,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 
 - Update the existing authoritative business skill in place when a process changes. Create a new skill only for a genuinely new bounded process/module; Git preserves history.
 - Update `BUSINESS.md` routing when processes are added, split, merged, renamed, or retired. Update behavior, acceptance tests, `CHANGELOG.md`, and `package.json` version together.
-- Membership changes and meaningful business mutations require app-local audit events. Preserve last-admin protection and exact-email access behavior.
+- Preserve last-admin protection and exact-email access behavior. A business module adds its own history or audit table only when its owners confirm the requirement.
 
 ## Change workflow
 

@@ -7,7 +7,7 @@ This checklist is normative for the `v1` compatibility channel.
 - [x] Each application owns one Supabase project and therefore the default `public` schema. The baseline exists once, in `supabase/baseline`, and the template ships it verbatim with a recorded checksum; the provisioner renders only cluster roles, migration-history registration, and the initial admin.
 - [x] Row level security is the authorization boundary rather than schema isolation: the baseline revokes the permissive `public` defaults for existing and future objects, the application audit fails any table created without it, and applications select no schema anywhere.
 - [x] GitHub owns source, CI, approvals, deployment history, environment configuration, secrets, and GHCR artifacts.
-- [x] Supabase Auth owns identity; each application project owns authorization, audit, and business state.
+- [x] Supabase Auth owns identity; each application project owns authorization and business state.
 - [x] There is no monkeyOS application-state database, registry, user directory, audit store, catalog, deployment-state store, or business schema.
 - [x] Contributors can develop; protected `production` environment reviewers authorize promotion; Platform Admins own the mechanism and targets.
 - [x] Application workflows are thin callers of protected central `@v1` reusable workflows.
@@ -28,7 +28,7 @@ This checklist is normative for the `v1` compatibility channel.
 - [x] Application-owned data is local-first; external/shared dependencies are declared, least-privilege, and read-only by default.
 - [x] PostgreSQL catalogs are the metadata source; cross-domain contracts are explicit and there is no maintained catalog.
 - [x] Local secrets use Bun.secrets; production secrets are released only after the GitHub `production` environment gate.
-- [x] The generic app starts with only Auth, app-local membership, and audit state; it contains no invented placeholder business schema, records, routes, or CRUD.
+- [x] The generic app starts with only Auth and app-local membership state; it contains no invented placeholder business schema, records, routes, or CRUD, and no audit log a business module has not asked for.
 - [x] Every app starts with `BUSINESS.md` plus an authoritative application-definition skill; each real process/module receives a routed authoritative skill before implementation.
 - [x] Routine Supabase server state is owned by typed TanStack Query hooks with stable keys, validation, errors, and precise cache updates; pages/components consume hooks and RLS remains authoritative.
 

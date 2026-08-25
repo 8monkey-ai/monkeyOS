@@ -3,39 +3,6 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
-      audit_log: {
-        Row: {
-          action: string;
-          actor_user_id: string | null;
-          after_data: Json | null;
-          before_data: Json | null;
-          entity: string;
-          id: number;
-          occurred_at: string;
-          record_id: string | null;
-        };
-        Insert: {
-          action: string;
-          actor_user_id?: string | null;
-          after_data?: Json | null;
-          before_data?: Json | null;
-          entity: string;
-          id?: never;
-          occurred_at?: string;
-          record_id?: string | null;
-        };
-        Update: {
-          action?: string;
-          actor_user_id?: string | null;
-          after_data?: Json | null;
-          before_data?: Json | null;
-          entity?: string;
-          id?: never;
-          occurred_at?: string;
-          record_id?: string | null;
-        };
-        Relationships: [];
-      };
       members: {
         Row: {
           created_at: string;

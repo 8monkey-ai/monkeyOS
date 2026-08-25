@@ -33,21 +33,8 @@ create table public.members (
 
 create index members_created_by_idx on public.members(created_by);
 
-create table public.audit_log (
-  id bigint generated always as identity primary key,
-  occurred_at timestamptz not null default now(),
-  actor_user_id uuid references auth.users(id) on delete set null,
-  action text not null,
-  entity text not null,
-  record_id text,
-  before_data jsonb,
-  after_data jsonb
-);
-
-create index audit_log_occurred_at_idx on public.audit_log(occurred_at desc);
-create index audit_log_actor_idx on public.audit_log(actor_user_id);
-create index audit_log_entity_record_idx on public.audit_log(entity, record_id);
-
+-- `is_member` has no caller in this baseline: it exists so an application-owned table can write
+-- `using ((select public.is_member()))` instead of restating the membership subquery per policy.
 create function public.is_member()
 returns boolean language sql stable security definer set search_path = ''
 as $$
@@ -64,26 +51,6 @@ as $$
       where user_id = (select auth.uid()) and role = 'admin'
     );
 $$;
-
-create function public.audit_membership_change()
-returns trigger language plpgsql security definer set search_path = ''
-as $$
-begin
-  insert into public.audit_log(actor_user_id, action, entity, record_id, before_data, after_data)
-  values (
-    (select auth.uid()),
-    'membership.' || lower(tg_op),
-    'member',
-    coalesce(new.user_id, old.user_id)::text,
-    case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end,
-    case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end
-  );
-  return coalesce(new, old);
-end;
-$$;
-
-create trigger members_audit_trigger after insert or update or delete on public.members
-for each row execute function public.audit_membership_change();
 
 create function public.protect_last_admin()
 returns trigger language plpgsql security definer set search_path = ''
@@ -129,7 +96,6 @@ end;
 $$;
 
 alter table public.members enable row level security;
-alter table public.audit_log enable row level security;
 
 create policy members_select on public.members for select to authenticated
 using (user_id = (select auth.uid()) or (select public.is_admin()));
@@ -138,12 +104,8 @@ using ((select public.is_admin())) with check ((select public.is_admin()));
 create policy members_delete on public.members for delete to authenticated
 using ((select public.is_admin()) and user_id <> (select auth.uid()));
 
-create policy audit_select on public.audit_log for select to authenticated
-using ((select public.is_member()));
-
 revoke all on all tables in schema public from public, anon, authenticated;
 revoke all on all functions in schema public from public, anon, authenticated;
-grant select on public.members, public.audit_log to authenticated;
+grant select on public.members to authenticated;
 grant update(role), delete on public.members to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
 grant execute on function public.is_member(), public.is_admin(), public.add_member_by_email(text, text) to authenticated;

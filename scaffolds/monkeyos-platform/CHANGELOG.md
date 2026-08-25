@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.9.0
+
+- Removed the audit log from the canonical application baseline, so a new application starts with Auth and app-local membership only and inherits no audit table it has not asked for.
+- Reframed traceability as a per-module business requirement across the platform contract, the provisioning description, the Supabase baseline notes, the Pi audit prompt, and the database-migration, security-review, test, and commit skills.
+- Left the repository contract audit, its workflow, and the baseline checksum verification unchanged; only the runtime audit log was removed.
+
 ## 2.8.0
 
 - Made application identity convention rather than configuration: applications keep no identity file, own the default `public` schema, and write the repository name only to the credential-store namespace and the local Supabase container prefix.

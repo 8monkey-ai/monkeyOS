@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.9.0
+
+- Removed the baseline audit log: the `audit_log` table, its indexes, the `audit_membership_change` trigger function, the `members` audit trigger, and the audit RLS policy and grant are gone from the platform-owned baseline.
+- Removed the audit trail route, its query hook, the sidebar entry, and the `audit_log` generated types; membership mutations now invalidate only the members key.
+- Dropped the four audit assertions from the pgTAP suite and the audit step from the responsive Playwright journey, which now visits Access instead.
+- Kept `public.is_member()`, whose only caller was the audit policy, as the documented RLS helper for application-owned tables.
+- Dropped `grant usage, select on all sequences`, a no-op now that no baseline table has a sequence.
+- Corrected the Playwright health assertion, which still expected version 2.7.1.
+
 ## 2.8.0
 
 - Replaced the seven-field `monkeyos.identity.json` with convention: the application owns the default `public` schema and derives its only remaining name, the Bun.secrets namespace, from `package.json`.

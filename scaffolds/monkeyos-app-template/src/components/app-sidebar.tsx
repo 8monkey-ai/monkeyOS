@@ -1,4 +1,4 @@
-import { Gauge, History, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Gauge, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { useAuth } from "@/contexts/auth";
 import { useRuntime } from "@/contexts/runtime";
@@ -18,10 +18,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const links = [
-  { to: "/", label: "Overview", icon: Gauge, end: true },
-  { to: "/audit", label: "Audit trail", icon: History, end: false },
-];
+const links = [{ to: "/", label: "Overview", icon: Gauge, end: true }];
 
 export function AppSidebar() {
   const { supabase } = useRuntime();

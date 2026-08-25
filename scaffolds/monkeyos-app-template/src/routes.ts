@@ -6,7 +6,6 @@ export default [
   layout("routes/protected.tsx", [
     layout("routes/app-shell.tsx", [
       index("routes/dashboard.tsx"),
-      route("audit", "routes/audit.tsx"),
       layout("routes/admin.tsx", [route("access", "routes/access.tsx")]),
     ]),
   ]),

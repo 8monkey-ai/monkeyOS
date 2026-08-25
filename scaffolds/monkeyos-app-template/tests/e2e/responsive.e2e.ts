@@ -15,9 +15,8 @@ test("admin signs in and reaches protected, responsive application", async ({ pa
     await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(page.getByRole("link", { name: "Access" })).toBeVisible();
   }
-  await page.getByRole("link", { name: "Audit trail" }).click();
-  await expect(page.getByRole("heading", { name: "Audit trail" })).toBeVisible();
-  await expect(page.getByText("membership.insert").first()).toBeVisible();
+  await page.getByRole("link", { name: "Access" }).click();
+  await expect(page.getByRole("heading", { name: "Application access" })).toBeVisible();
 });
 
 test("authenticated non-member is denied by app membership", async ({ page }) => {
@@ -34,7 +33,7 @@ test("health endpoint reports the immutable application identity", async ({ requ
   expect(response.ok()).toBe(true);
   await expect(response.json()).resolves.toMatchObject({
     status: "ok",
-    version: "2.7.1",
+    version: "2.9.0",
     sha: process.env.EXPECTED_GIT_SHA ?? "test",
   });
 });

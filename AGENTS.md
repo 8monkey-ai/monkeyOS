@@ -16,7 +16,7 @@
 - Keep Contributor, Deployer, and Platform Admin authority separate. Applications cannot choose privileged deployment targets or mechanics.
 - Keep application workflows thin and central behavior compatible with the protected `v1` channel.
 - Business behavior belongs in application-owned `BUSINESS.md` and current authoritative `business/skills/*/SKILL.md` files. Platform synchronization must never overwrite them.
-- The generic scaffold contains only the Auth, app-local membership, and audit foundation. Do not invent placeholder business tables, records, routes, or CRUD; the first real business module starts from a routed business skill and named owner decisions.
+- The generic scaffold contains only the Auth and app-local membership foundation. Do not invent placeholder business tables, records, routes, or CRUD, and do not reintroduce a baseline audit log; traceability belongs to the business module whose owners require it. The first real business module starts from a routed business skill and named owner decisions.
 - Use official shadcn registry components through `shadcn@latest`; do not hand-write lookalikes for available standard components. Keep registry source in `src/components/ui/` and application composition outside it.
 - Applications use standard React Router Framework Mode files and package scripts. Keep the Vite configuration conventional and the Bun production adapter limited to serving the generated build.
 - Keep routine Supabase server state behind typed TanStack Query hooks with stable query keys. Pages and visual components consume those hooks instead of calling `.from()` or `.rpc()` directly; successful mutations invalidate or update the exact affected keys, while RLS remains authoritative.

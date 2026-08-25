@@ -1,6 +1,6 @@
 # Supabase administration primitives
 
-`supabase/baseline` is the canonical application baseline: members, audit log, policies, privileged functions, and the deny-by-default posture on `public`. It names no application, so it is byte-identical everywhere; the template ships it verbatim and records its checksum in `.monkeyos/baseline.manifest.json`. Change it here and copy it into the template together.
+`supabase/baseline` is the canonical application baseline: members, policies, privileged functions, and the deny-by-default posture on `public`. It names no application, so it is byte-identical everywhere; the template ships it verbatim and records its checksum in `.monkeyos/baseline.manifest.json`. Change it here and copy it into the template together.
 
 The other files are reference patterns for Platform Admins. Only `admin/provision-app.sql` is rendered and executed by the provisioner. It runs immediately after the baseline and creates the two cluster roles, their grants, the baseline's entry in Supabase migration history, and the initial exact-email admin. It duplicates no application DDL and creates no central monkeyOS state.
 

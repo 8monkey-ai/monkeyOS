@@ -16,8 +16,8 @@ This generic scaffold intentionally defines no business domain. It provides the 
 - **Member**: existing Supabase Auth user granted local application access.
 - **Admin**: member allowed to manage app-local access.
 - **Business module**: a real, independently bounded capability confirmed by its owners and defined in its own skill.
-- Identity is shared; authorization, audit, and future business state are application-local.
-- Membership changes are traceable in the local audit log; each future business module must define its own material audit events.
+- Identity is shared; authorization and future business state are application-local.
+- Each business module defines its own traceability requirements; the foundation ships no audit log.
 - External/shared dependencies are explicit and read-only unless the data owner approves a source-owned operation.
 - No placeholder business table, record, process, or UI is authoritative.
 

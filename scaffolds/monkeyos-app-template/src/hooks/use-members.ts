@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useRuntime } from "../contexts/runtime";
-import { auditLogQueryKey } from "./use-audit-log";
 
 export const membersQueryKey = ["members"] as const;
 const MemberRoleSchema = z.enum(["admin", "member"]);
@@ -10,10 +9,7 @@ const ChangeMemberRoleInputSchema = z.object({ id: z.uuid(), role: MemberRoleSch
 const MemberIdSchema = z.uuid();
 
 async function invalidateMembershipState(queryClient: ReturnType<typeof useQueryClient>) {
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: membersQueryKey }),
-    queryClient.invalidateQueries({ queryKey: auditLogQueryKey }),
-  ]);
+  await queryClient.invalidateQueries({ queryKey: membersQueryKey });
 }
 
 export function useMembers() {

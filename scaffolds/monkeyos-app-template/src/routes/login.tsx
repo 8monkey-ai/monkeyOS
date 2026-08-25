@@ -56,8 +56,7 @@ export default function LoginPage() {
             Simple applications. Strong boundaries.
           </h1>
           <p className="mt-5 max-w-lg text-lg leading-8 text-teal-50/70">
-            Shared identity, local authorization, auditable business changes, and an immutable path
-            to production.
+            Shared identity, local authorization, and an immutable path to production.
           </p>
         </div>
         <p className="text-sm text-teal-100/50">Identity is shared. Authorization is local.</p>

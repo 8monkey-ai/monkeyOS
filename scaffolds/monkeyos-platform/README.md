@@ -85,11 +85,14 @@ Use the latest stable Bun for all JavaScript execution, package management, serv
 
 Oxlint runs type-aware rules and TypeScript compiler diagnostics together through `oxlint-tsgolint`. Applications generate React Router types first; neither scaffold needs a separate `tsc --noEmit` pass.
 
+Both scaffolds use the modern TypeScript 7/Bun ESM baseline: `ESNext`, preserved modules with bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. App repositories additionally retain React Router's generated-type `rootDirs` mapping. Central audits reject redundant legacy compatibility options.
+
 ## Current implementation references
 
 - GitHub reusable workflows, deployments/environments, and rulesets: <https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows>, <https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments>, <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets>
 - Supabase local development and RLS: <https://supabase.com/docs/guides/local-development/cli-workflows>, <https://supabase.com/docs/guides/database/postgres/row-level-security>
 - React Router Framework Mode, deployment, and current Bun/non-Node runtime changes: <https://reactrouter.com/start/modes>, <https://reactrouter.com/start/framework/deploying>, <https://reactrouter.com/start/changelog>
+- TypeScript 7 configuration and Bun TypeScript baseline: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-rc/>, <https://bun.sh/docs/typescript>
 - React Compiler with React Router/Vite: <https://react.dev/learn/react-compiler/installation>
 - Bun secrets: <https://bun.com/docs/runtime/secrets>
 - Pi coding agent: <https://github.com/earendil-works/pi/tree/main/packages/coding-agent>

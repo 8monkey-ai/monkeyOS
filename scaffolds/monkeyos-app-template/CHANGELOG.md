@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0
+
+- Modernized TypeScript configuration for TypeScript 7 and Bun with `ESNext`, preserved modules, explicit module detection, verbatim module syntax, and checked side-effect imports.
+- Removed redundant JavaScript, class-field, module-interop, casing, and JSON-import compatibility options while retaining React Router type generation and strict application checks.
+
 ## 2.4.0
 
 - Replaced the separate `tsc --noEmit` pass with Oxlint type-aware linting and compiler diagnostics.

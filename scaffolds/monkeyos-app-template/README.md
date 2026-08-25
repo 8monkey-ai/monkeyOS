@@ -62,6 +62,8 @@ Use the latest stable Bun as the JavaScript runtime, package manager, applicatio
 
 React Router type generation runs before Oxlint. Oxlint's type-aware and type-check modes then run lint rules and TypeScript compiler diagnostics in one pass; there is no separate `tsc --noEmit` pass.
 
+`tsconfig.json` uses the modern TypeScript 7/Bun ESM baseline: `ESNext`, preserved modules with bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. React Router's generated types remain wired through its required `rootDirs` mapping; unused legacy compatibility options are intentionally absent.
+
 ## Deploy
 
 `main` is accepted source, not production. Central CI builds and publishes one immutable architecture-matched `ghcr.io/<org>/<repo>:<git-sha>` image. `deploy production` requests promotion; the protected environment requires a Deployer. The platform workflow—not this repository—selects the protected `RUNTIME_HOST` pool, `RUNTIME_ARCH`, wildcard domain, SSH identity, privileges, and Kamal behavior. `RUNTIME_HOST` is a semicolon-separated list and can contain any positive number of hosts. `RUNTIME_ARCH` defaults to `arm64`; Platform Admins may switch the entire runtime contract to `amd64`, which covers AMD and Intel x86-64. It never rebuilds during deploy.

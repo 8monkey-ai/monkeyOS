@@ -8,6 +8,7 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 
 - Latest stable Bun is the only JavaScript runtime, package manager, application server, and test runner; do not pin a Bun minor line or add Node, npm, pnpm, yarn, or another runtime/package manager.
 - Strict TypeScript, React 19 with React Compiler, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, oxfmt, type-aware Oxlint with compiler diagnostics, Bun test, and Playwright.
+- Keep `tsconfig.json` on the TypeScript 7/Bun ESM baseline: `ESNext`, `module: Preserve`, bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. Preserve React Router's generated-type `rootDirs`; do not add legacy compatibility flags without a demonstrated requirement.
 - Keep dependencies on compatible semver ranges and commit `bun.lock`. Let Dependabot refresh compatible dependency and action versions; do not hard-code patch versions in scripts or workflows.
 - Prefer SOLID, cohesive modules and direct code. Add abstractions only when they remove demonstrated duplication or enforce a real boundary.
 - Keep the React Router project conventional: standard package scripts, root, route modules, type generation, and Vite configuration. Do not add a parallel browser entry, development orchestrator, or custom bundling scheme.

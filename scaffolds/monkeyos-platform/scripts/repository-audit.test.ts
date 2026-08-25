@@ -10,11 +10,15 @@ test("detects versioned and unreferenced business skills", async () => {
   await writeFile(join(root, "BUSINESS.md"), "# Business\n");
   await writeFile(join(root, "CHANGELOG.md"), "## 1.0.0\n");
   await writeFile(join(root, "package.json"), '{"version":"1.0.0"}');
+  await writeFile(join(root, "tsconfig.json"), '{"compilerOptions":{"allowJs":false}}');
   await mkdir(join(root, "business/skills/returns-v2"), { recursive: true });
   await writeFile(join(root, "business/skills/returns-v2/SKILL.md"), "# Returns\n");
   const findings = await auditRepository(root);
   expect(findings.map((finding) => finding.message).join("\n")).toContain("Version-duplicated");
   expect(findings.map((finding) => finding.message).join("\n")).toContain("Unreferenced");
+  expect(findings.map((finding) => finding.message).join("\n")).toContain(
+    "redundant compatibility option: allowJs",
+  );
 });
 
 test("rejects routine Supabase access from visual components", async () => {

@@ -39,6 +39,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "bun.lock",
     "bunfig.toml",
     ".oxlintrc.json",
+    "tsconfig.json",
     "Dockerfile",
     "server.ts",
     "react-router.config.ts",
@@ -144,6 +145,49 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   }
   if (Object.values(packageJson.scripts ?? {}).some((script) => script.includes("tsc --noEmit"))) {
     findings.push({ level: "BLOCKING", message: "Oxlint type checking replaces tsc --noEmit" });
+  }
+  const tsconfigPath = join(root, "tsconfig.json");
+  if (await exists(tsconfigPath)) {
+    const tsconfig = JSON.parse(await readFile(tsconfigPath, "utf8")) as {
+      compilerOptions?: Record<string, unknown>;
+    };
+    const compilerOptions = tsconfig.compilerOptions ?? {};
+    for (const [option, expected] of Object.entries({
+      target: "ESNext",
+      module: "Preserve",
+      moduleResolution: "Bundler",
+      moduleDetection: "force",
+      verbatimModuleSyntax: true,
+      isolatedModules: true,
+      noEmit: true,
+      strict: true,
+      skipLibCheck: true,
+      noUncheckedSideEffectImports: true,
+      noUncheckedIndexedAccess: true,
+      exactOptionalPropertyTypes: true,
+    })) {
+      if (compilerOptions[option] !== expected) {
+        findings.push({
+          level: "BLOCKING",
+          message: `tsconfig compilerOptions.${option} must be ${JSON.stringify(expected)}`,
+        });
+      }
+    }
+    for (const redundant of [
+      "allowJs",
+      "allowSyntheticDefaultImports",
+      "esModuleInterop",
+      "forceConsistentCasingInFileNames",
+      "resolveJsonModule",
+      "useDefineForClassFields",
+    ]) {
+      if (redundant in compilerOptions) {
+        findings.push({
+          level: "BLOCKING",
+          message: `tsconfig contains redundant compatibility option: ${redundant}`,
+        });
+      }
+    }
   }
   const bunfigPath = join(root, "bunfig.toml");
   if (await exists(bunfigPath)) {

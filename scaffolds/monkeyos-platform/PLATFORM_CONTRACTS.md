@@ -22,6 +22,7 @@ This checklist is normative for the `v1` compatibility channel.
 - [x] Applications use standard React Router Framework Mode files and package scripts. Project-level Bun configuration selects the runtime, and production serves the generated build through a small Bun adapter.
 - [x] CI and containers use latest stable Bun as the only JavaScript runtime, package manager, application server, and test runner; compatible package/action/base-image releases move through semver ranges, moving tags, lockfiles, and Dependabot.
 - [x] React Router type generation precedes Oxlint; Oxlint type-aware rules and compiler diagnostics form one lint/type-check gate without a separate `tsc --noEmit` pass.
+- [x] Both scaffolds use a TypeScript 7/Bun ESM configuration with `ESNext`, preserved modules, bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness, without redundant compatibility flags.
 - [x] Cloud IaC owns infrequent host/network lifecycle; Kamal owns frequent application lifecycle.
 - [x] Application-owned data is local-first; external/shared dependencies are declared, least-privilege, and read-only by default.
 - [x] PostgreSQL catalogs are the metadata source; cross-domain contracts are explicit and there is no maintained catalog.

@@ -1232,6 +1232,7 @@ Package manager/tests    latest stable Bun
 Application server      latest stable Bun
                          Bun.serve + React Router request handler
 Language                 strict TypeScript
+                         TypeScript 7/Bun modern ESM configuration
 
 Frontend                 React 19
                          React Compiler
@@ -1270,6 +1271,8 @@ No routine server-data fetching through `useEffect`.
 Every application uses ordinary React Router Framework Mode conventions: standard `react-router dev`, `react-router build`, and `react-router typegen` package scripts, `src/root.tsx`, `src/routes.ts`, route modules, and the generated server build. React Router owns browser bootstrapping, route code splitting, development HMR, server rendering, and production request dispatch. Project-level Bun configuration selects Bun for package CLIs. A small production adapter serves the generated assets and delegates application requests to React Router.
 
 Bun is the JavaScript runtime, package manager, application server, and test runner. Package scripts name their tools normally, as they do in a newly generated project; `bunfig.toml` applies the runtime choice in one place. The Docker build resolves dependencies with Bun, builds the framework artifact once, and runs that exact artifact through the small Bun production adapter.
+
+TypeScript configuration follows the modern TypeScript 7 and Bun ESM baseline: `ESNext`, preserved modules with bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. React Router's generated types remain included through its required `rootDirs` mapping. Redundant legacy JavaScript, class-field, module-interop, casing, and unused JSON-import options are omitted.
 
 Each real module owns typed TanStack Query query/mutation hooks and stable query keys. Those hooks own routine Supabase access, Zod validation of untrusted mutation inputs, error propagation, and precise cache invalidation or updates after successful mutations. Pages and visual components consume the hooks instead of calling Supabase `.from()` or `.rpc()` directly. Client filtering and hidden controls are never authorization; PostgreSQL RLS remains authoritative.
 

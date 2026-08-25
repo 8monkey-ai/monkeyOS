@@ -1,12 +1,12 @@
 # monkeyOS scaffold validation report
 
-Date: 2026-08-24
+Date: 2026-08-25
 Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with this implementation and treated as authoritative.
 
 ## Maintained scaffold sources
 
-- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.4.0
-- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.4.0
+- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.5.0
+- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.5.0
 
 ## Results
 
@@ -34,6 +34,7 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 - The generic scaffold contains no invented business table, seed record, route, or CRUD screen. Its application-definition skill routes the first real module through named owner decisions before implementation; platform provisioning creates only schema/role, membership, and audit foundations.
 - Routine Supabase data access lives behind typed TanStack Query hooks with stable keys, validated mutations, error propagation, and precise cache updates. Pages and visual components consume hooks while RLS remains authoritative; deterministic audits enforce this boundary.
 - Both scaffolds use `oxlint-tsgolint` with `typeAware` and `typeCheck` enabled. Oxlint reported an intentional TS2322 probe, so the redundant `tsc --noEmit` pass was removed. React Router type generation remains an explicit prerequisite, and the TypeScript projects now cover the Bun production server and platform runtime tests.
+- Both `tsconfig.json` files use the TypeScript 7/Bun ESM baseline with `ESNext`, preserved modules, bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. Unused legacy compatibility options were removed, and deterministic app audits enforce the baseline.
 - The application uses React Router's standard Framework Mode conventions and ordinary `react-router dev`, `react-router build`, and `react-router typegen` commands. `bunfig.toml` selects Bun for package CLIs. The only development exception supplies Bun's `development` export condition to avoid React Router's current non-Node restart loop; it adds no wrapper or custom server.
 - Bun is not pinned to a minor line. It is the JavaScript runtime, package manager, application server, and test runner; GitHub workflows install latest stable Bun, the Dockerfile uses the moving `oven/bun:alpine` base, and committed `bun.lock` preserves exact tested resolutions.
 - One Platform Admin-owned organization variable, `RUNTIME_ARCH`, selects `arm64` or `amd64` and defaults to `arm64`. `amd64` is the OCI architecture name for x86-64 on both AMD and Intel.

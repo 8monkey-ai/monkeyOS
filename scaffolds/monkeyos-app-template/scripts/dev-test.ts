@@ -22,5 +22,3 @@ const shutdown = () => server.kill();
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 process.exit(await server.exited);
-
-export {};

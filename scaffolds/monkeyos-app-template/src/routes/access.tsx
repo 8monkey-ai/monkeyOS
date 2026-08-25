@@ -23,7 +23,8 @@ import {
 import { formatDate } from "../lib/utils";
 import { PageHeading } from "./dashboard";
 
-const AddMemberSchema = z.object({ email: z.email(), role: z.enum(["admin", "member"]) });
+const MemberRoleSchema = z.enum(["admin", "member"]);
+const AddMemberSchema = z.object({ email: z.email(), role: MemberRoleSchema });
 type AddMemberValues = z.infer<typeof AddMemberSchema>;
 
 export default function AccessPage() {
@@ -55,24 +56,26 @@ export default function AccessPage() {
           </div>
           <h2 className="mt-5 text-lg font-bold">Add existing user</h2>
           <form className="mt-5 space-y-4" onSubmit={submit}>
-            <label className="block text-sm font-semibold">
+            <label htmlFor="access-email" className="block text-sm font-semibold">
               Exact email
               <Input
+                id="access-email"
                 className="mt-2"
                 type="email"
                 placeholder="person@example.com"
                 {...form.register("email")}
               />
             </label>
-            <label className="block text-sm font-semibold">
+            <label htmlFor="access-role" className="block text-sm font-semibold">
               Role
               <Select
                 value={role}
-                onValueChange={(role) =>
-                  role && form.setValue("role", role as AddMemberValues["role"])
-                }
+                onValueChange={(selectedRole) => {
+                  const parsedRole = MemberRoleSchema.safeParse(selectedRole);
+                  if (parsedRole.success) form.setValue("role", parsedRole.data);
+                }}
               >
-                <SelectTrigger className="mt-2 w-full">
+                <SelectTrigger id="access-role" className="mt-2 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -113,10 +116,12 @@ export default function AccessPage() {
                 </div>
                 <Select
                   value={member.role}
-                  onValueChange={(role) =>
-                    role &&
-                    changeRole.mutate({ id: member.user_id, role: role as "admin" | "member" })
-                  }
+                  onValueChange={(selectedRole) => {
+                    const parsedRole = MemberRoleSchema.safeParse(selectedRole);
+                    if (parsedRole.success) {
+                      changeRole.mutate({ id: member.user_id, role: parsedRole.data });
+                    }
+                  }}
                 >
                   <SelectTrigger aria-label={`Role for ${member.user_id}`} className="capitalize">
                     <SelectValue />

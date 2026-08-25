@@ -2,11 +2,12 @@ import { createRequestHandler, type ServerBuild } from "react-router";
 
 const clientRoot = `${import.meta.dir}/build/client`;
 const serverBuildPath = "./build/server/index.js";
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- React Router generates this typed module only during the build.
 const serverBuild = (await import(serverBuildPath)) as unknown as ServerBuild;
 const handleFrameworkRequest = createRequestHandler(serverBuild, "production");
 
 async function staticResponse(request: Request): Promise<Response | undefined> {
-  if (request.method !== "GET" && request.method !== "HEAD") return;
+  if (request.method !== "GET" && request.method !== "HEAD") return undefined;
   let pathname: string;
   try {
     pathname = decodeURIComponent(new URL(request.url).pathname);
@@ -15,9 +16,9 @@ async function staticResponse(request: Request): Promise<Response | undefined> {
   }
   const relativePath = pathname.replace(/^\/+/, "");
   if (!relativePath || relativePath.includes("\\") || relativePath.split("/").includes(".."))
-    return;
+    return undefined;
   const file = Bun.file(`${clientRoot}/${relativePath}`);
-  if (!(await file.exists())) return;
+  if (!(await file.exists())) return undefined;
   const headers = new Headers({
     "cache-control": relativePath.startsWith("assets/")
       ? "public, max-age=31536000, immutable"

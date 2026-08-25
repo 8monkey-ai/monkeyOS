@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.0
+
+- Enabled Oxlint's high-signal suspicious checks plus React and accessibility analysis while retaining type-aware compiler diagnostics.
+- Added explicit Oxfmt policy with Tailwind v4 class sorting for attributes and `cn`/`cva` calls.
+- Replaced unchecked configuration and platform-response assertions with validated boundaries, strengthened form semantics, and modernized responsive state subscription.
+
 ## 2.5.0
 
 - Modernized TypeScript configuration for TypeScript 7 and Bun with `ESNext`, preserved modules, explicit module detection, verbatim module syntax, and checked side-effect imports.

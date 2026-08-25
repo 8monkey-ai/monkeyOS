@@ -1,7 +1,13 @@
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import { z } from "zod";
 
-type Manifest = { source: string; compatibility: string; files: Record<string, string> };
+const ManifestSchema = z.object({
+  source: z.string(),
+  compatibility: z.string(),
+  files: z.record(z.string(), z.string()),
+});
+type Manifest = z.infer<typeof ManifestSchema>;
 
 function argument(name: string, fallback?: string): string {
   const index = Bun.argv.indexOf(name);
@@ -18,7 +24,7 @@ async function filesUnder(root: string, current = root): Promise<string[]> {
     if (entry.isDirectory()) output.push(...(await filesUnder(root, path)));
     else if (entry.isFile()) output.push(relative(root, path));
   }
-  return output.sort();
+  return output.toSorted();
 }
 
 const source = argument("--source", join(import.meta.dir, "..", "skills"));
@@ -27,7 +33,7 @@ const compatibility = argument("--compatibility", "v1");
 const manifestPath = join(target, ".manifest.json");
 let previous: Manifest | undefined;
 try {
-  previous = JSON.parse(await readFile(manifestPath, "utf8")) as Manifest;
+  previous = ManifestSchema.parse(JSON.parse(await readFile(manifestPath, "utf8")));
 } catch {
   previous = undefined;
 }

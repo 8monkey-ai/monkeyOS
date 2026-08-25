@@ -1259,8 +1259,10 @@ Client                   supabase-js
 Schema                    SQL migrations
 ORM                       none
 
-Formatting               oxfmt
-Linting + type checking  oxlint with type-aware compiler diagnostics
+Formatting               oxfmt with Tailwind class sorting
+Linting + type checking  oxlint correctness + suspicious rules
+                         React + accessibility rules in applications
+                         type-aware compiler diagnostics
 
 Unit tests               Bun test
 E2E                      Playwright
@@ -1277,6 +1279,13 @@ TypeScript configuration follows the modern TypeScript 7 and Bun ESM baseline: `
 Each real module owns typed TanStack Query query/mutation hooks and stable query keys. Those hooks own routine Supabase access, Zod validation of untrusted mutation inputs, error propagation, and precise cache invalidation or updates after successful mutations. Pages and visual components consume the hooks instead of calling Supabase `.from()` or `.rpc()` directly. Client filtering and hidden controls are never authorization; PostgreSQL RLS remains authoritative.
 
 Avoid unnecessary manual memoization under React Compiler.
+
+Both scaffolds commit explicit Oxfmt and Oxlint configuration. Oxlint enforces the high-signal
+`correctness` and `suspicious` categories, rejects stale disable directives, and includes React and
+accessibility analysis in applications. Broad stylistic, pedantic, restriction, nursery, and
+heuristic `react-perf` rules remain off; React Compiler owns routine render memoization. Oxfmt owns
+code style, and application formatting also sorts Tailwind classes using the Tailwind v4 stylesheet
+and the standard `cn`/`cva` helpers.
 
 Every app initializes `components.json` through the official `shadcn@latest init` CLI with the Base UI preset. Standard primitives and the application shell—including Sidebar, Button, Card, Dialog, Input, Select, Table, and Textarea—are installed or refreshed through `shadcn@latest add`; agents do not hand-write lookalikes for components available in the official registry. Generated registry source lives in `src/components/ui/`, while application composition lives outside that folder. Intentional generated-source adaptations must preserve accessibility, responsive behavior, slots, and theme tokens.
 

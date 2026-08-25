@@ -32,6 +32,12 @@ const Input = z.object({
   secrets: z.record(z.string().regex(/^[A-Z][A-Z0-9_]*$/), z.string()).default({}),
 });
 
+function requiredEnvironment(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing protected deployment value: ${name}`);
+  return value;
+}
+
 export function parseRuntimeHosts(value: string): string[] {
   return RuntimeHosts.parse(
     value
@@ -43,12 +49,11 @@ export function parseRuntimeHosts(value: string): string[] {
 
 export function buildKamalConfig(raw: z.input<typeof Input>) {
   const input = Input.parse(raw);
-  const [organization, repository] = input.repository.toLowerCase().split("/", 2) as [
-    string,
-    string,
-  ];
+  const [organization, repository] = input.repository.toLowerCase().split("/", 2);
+  if (!organization || !repository)
+    throw new Error("Repository must include organization and name");
   const service = repository.replaceAll("-", "_");
-  const secretNames = Object.keys(input.secrets).sort();
+  const secretNames = Object.keys(input.secrets).toSorted();
   const yaml = [
     `service: ${service}`,
     `image: ghcr.io/${organization}/${repository}`,
@@ -90,12 +95,9 @@ export function buildKamalConfig(raw: z.input<typeof Input>) {
 }
 
 if (import.meta.main) {
-  const requiredEnvironment = (name: string): string => {
-    const value = process.env[name];
-    if (!value) throw new Error(`Missing protected deployment value: ${name}`);
-    return value;
-  };
-  const appSecrets = JSON.parse(process.env.APP_ENV_JSON ?? "{}") as Record<string, string>;
+  const appSecrets = z
+    .record(z.string(), z.string())
+    .parse(JSON.parse(process.env.APP_ENV_JSON ?? "{}"));
   const config = buildKamalConfig({
     repository: requiredEnvironment("GITHUB_REPOSITORY"),
     gitSha: requiredEnvironment("DEPLOY_SHA"),

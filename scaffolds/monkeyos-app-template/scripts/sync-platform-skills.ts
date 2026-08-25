@@ -1,8 +1,11 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { z } from "zod";
 
-const identity = (await Bun.file("monkeyos.identity.json").json()) as { organization: string };
+const identity = z
+  .object({ organization: z.string() })
+  .parse(await Bun.file("monkeyos.identity.json").json());
 const temporary = await mkdtemp(join(tmpdir(), "monkeyos-platform-"));
 try {
   const clone = Bun.spawn([

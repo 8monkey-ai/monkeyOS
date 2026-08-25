@@ -1,14 +1,15 @@
 import { createInterface } from "node:readline/promises";
+import { AppIdentitySchema, SourceDeclarationsSchema } from "../src/config";
 
 const name = Bun.argv[2];
 if (!name || !/^[A-Z][A-Z0-9_]*$/.test(name)) {
   console.error("Usage: bun run secret:add <DECLARED_NAME>");
   process.exit(2);
 }
-const identity = (await Bun.file("monkeyos.identity.json").json()) as { secretService: string };
-const declarations = (await Bun.file("config/external-data-sources.json").json()) as Array<{
-  name: string;
-}>;
+const identity = AppIdentitySchema.parse(await Bun.file("monkeyos.identity.json").json());
+const declarations = SourceDeclarationsSchema.parse(
+  await Bun.file("config/external-data-sources.json").json(),
+);
 const allowed = new Set([
   "SUPABASE_URL",
   "SUPABASE_PUBLISHABLE_KEY",

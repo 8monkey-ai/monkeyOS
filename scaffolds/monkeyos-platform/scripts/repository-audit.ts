@@ -1,7 +1,29 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { z } from "zod";
 
 type Finding = { level: "BLOCKING" | "IMPORTANT"; message: string };
+const StringRecord = z.record(z.string(), z.string());
+const PackageJsonSchema = z.object({
+  version: z.string().optional(),
+  engines: z.object({ bun: z.string().optional() }).optional(),
+  packageManager: z.string().optional(),
+  scripts: StringRecord.optional(),
+  dependencies: StringRecord.optional(),
+  devDependencies: StringRecord.optional(),
+});
+const OxlintSchema = z.object({
+  categories: z.object({ correctness: z.literal("warn"), suspicious: z.literal("warn") }),
+  plugins: z.array(z.string()),
+  rules: z.record(z.string(), z.unknown()),
+  options: z.object({
+    reportUnusedDisableDirectives: z.literal("deny"),
+    typeAware: z.literal(true),
+    typeCheck: z.literal(true),
+  }),
+});
+const TsconfigSchema = z.object({ compilerOptions: z.record(z.string(), z.unknown()).optional() });
+const ExternalDeclarationsSchema = z.array(z.record(z.string(), z.unknown()));
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -24,7 +46,7 @@ async function walk(root: string, current = root): Promise<string[]> {
     if (entry.isDirectory()) output.push(...(await walk(root, path)));
     else output.push(relative(root, path));
   }
-  return output.sort();
+  return output.toSorted();
 }
 
 export async function auditRepository(root: string): Promise<Finding[]> {
@@ -39,6 +61,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     "bun.lock",
     "bunfig.toml",
     ".oxlintrc.json",
+    ".oxfmtrc.json",
     "tsconfig.json",
     "Dockerfile",
     "server.ts",
@@ -83,14 +106,9 @@ export async function auditRepository(root: string): Promise<Finding[]> {
     });
   }
 
-  const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as {
-    version?: string;
-    engines?: { bun?: string };
-    packageManager?: string;
-    scripts?: Record<string, string>;
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-  };
+  const packageJson = PackageJsonSchema.parse(
+    JSON.parse(await readFile(join(root, "package.json"), "utf8")),
+  );
   const changelog = await readFile(join(root, "CHANGELOG.md"), "utf8");
   if (!packageJson.version || !changelog.includes(`## ${packageJson.version}`)) {
     findings.push({
@@ -106,7 +124,9 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   }
   const componentsPath = join(root, "components.json");
   if (await exists(componentsPath)) {
-    const components = JSON.parse(await readFile(componentsPath, "utf8")) as { style?: string };
+    const components = z
+      .object({ style: z.string().optional() })
+      .parse(JSON.parse(await readFile(componentsPath, "utf8")));
     if (components.style !== "base-nova") {
       findings.push({ level: "BLOCKING", message: "shadcn must use the CLI Base UI nova preset" });
     }
@@ -130,13 +150,37 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   }
   const oxlintPath = join(root, ".oxlintrc.json");
   if (await exists(oxlintPath)) {
-    const oxlint = JSON.parse(await readFile(oxlintPath, "utf8")) as {
-      options?: { typeAware?: boolean; typeCheck?: boolean };
-    };
-    if (!oxlint.options?.typeAware || !oxlint.options.typeCheck) {
+    const oxlint = OxlintSchema.parse(JSON.parse(await readFile(oxlintPath, "utf8")));
+    if (
+      !oxlint.plugins.includes("react") ||
+      !oxlint.plugins.includes("jsx-a11y") ||
+      oxlint.rules["react/jsx-no-constructed-context-values"] !== "warn" ||
+      oxlint.rules["react/react-in-jsx-scope"] !== "off"
+    ) {
       findings.push({
         level: "BLOCKING",
-        message: "Oxlint must run type-aware rules and TypeScript compiler diagnostics",
+        message: "Oxlint must enforce React, accessibility, and stable Context values",
+      });
+    }
+  }
+  const oxfmtPath = join(root, ".oxfmtrc.json");
+  if (await exists(oxfmtPath)) {
+    const oxfmt = z
+      .object({
+        printWidth: z.literal(100),
+        sortTailwindcss: z.object({
+          stylesheet: z.literal("./src/app.css"),
+          functions: z.array(z.string()),
+        }),
+      })
+      .parse(JSON.parse(await readFile(oxfmtPath, "utf8")));
+    if (
+      !oxfmt.sortTailwindcss.functions.includes("cn") ||
+      !oxfmt.sortTailwindcss.functions.includes("cva")
+    ) {
+      findings.push({
+        level: "BLOCKING",
+        message: "Oxfmt must sort Tailwind classes in cn() and cva()",
       });
     }
   }
@@ -148,9 +192,7 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   }
   const tsconfigPath = join(root, "tsconfig.json");
   if (await exists(tsconfigPath)) {
-    const tsconfig = JSON.parse(await readFile(tsconfigPath, "utf8")) as {
-      compilerOptions?: Record<string, unknown>;
-    };
+    const tsconfig = TsconfigSchema.parse(JSON.parse(await readFile(tsconfigPath, "utf8")));
     const compilerOptions = tsconfig.compilerOptions ?? {};
     for (const [option, expected] of Object.entries({
       target: "ESNext",
@@ -299,8 +341,8 @@ export async function auditRepository(root: string): Promise<Finding[]> {
       findings.push({ level: "BLOCKING", message: `AGENTS.md does not enforce ${principle}` });
     }
   }
-  for (const file of files.filter((file) =>
-    /^(?:src\/routes|src\/components)\/.*\.tsx$/.test(file),
+  for (const file of files.filter((candidate) =>
+    /^(?:src\/routes|src\/components)\/.*\.tsx$/.test(candidate),
   )) {
     const source = await readFile(join(root, file), "utf8");
     if (/\.(?:from|rpc)\s*\(/.test(source)) {
@@ -323,9 +365,9 @@ export async function auditRepository(root: string): Promise<Finding[]> {
   }
   const declarationPath = join(root, "config", "external-data-sources.json");
   if (await exists(declarationPath)) {
-    const declarations = JSON.parse(await readFile(declarationPath, "utf8")) as Array<
-      Record<string, unknown>
-    >;
+    const declarations = ExternalDeclarationsSchema.parse(
+      JSON.parse(await readFile(declarationPath, "utf8")),
+    );
     for (const declaration of declarations) {
       if (Object.keys(declaration).some((key) => /url|password|secret|token/i.test(key))) {
         findings.push({

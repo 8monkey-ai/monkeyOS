@@ -1,6 +1,17 @@
 {
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn"
+  },
   "ignorePatterns": ["src/lib/database.types.ts"],
+  "plugins": ["unicorn", "typescript", "oxc", "react", "jsx-a11y"],
+  "rules": {
+    "react/jsx-no-constructed-context-values": "warn",
+    "react/react-in-jsx-scope": "off"
+  },
   "options": {
+    "reportUnusedDisableDirectives": "deny",
     "typeAware": true,
     "typeCheck": true
   }

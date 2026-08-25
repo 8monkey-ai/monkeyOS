@@ -54,5 +54,3 @@ try {
 } finally {
   Bun.spawnSync(["docker", "stop", name], { stdout: "ignore", stderr: "ignore" });
 }
-
-export {};

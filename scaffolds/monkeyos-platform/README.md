@@ -1,6 +1,6 @@
 # monkeyOS organization platform
 
-This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
+Version **2.6.0**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
 
 monkeyOS deliberately owns no database or service for applications, users, memberships, audit, domains, catalogs, deployments, workflows, or infrastructure state. GitHub, Supabase Auth, each app schema, Cloudflare, and the selected cloud control plane remain authoritative.
 
@@ -83,7 +83,7 @@ Validate each provider definition with its native tooling before deployment. Inf
 
 Use the latest stable Bun for all JavaScript execution, package management, serving, and tests. Dependencies use compatible semver ranges while committed lockfiles preserve exact tested builds. Dependabot natively maintains Bun packages, the moving Bun container base, and GitHub Actions. Workflows use current action major channels and `setup-bun` latest, so toolchain updates do not require script edits. Deployment always promotes the already-tested immutable image and never resolves dependencies again.
 
-Oxlint runs type-aware rules and TypeScript compiler diagnostics together through `oxlint-tsgolint`. Applications generate React Router types first; neither scaffold needs a separate `tsc --noEmit` pass.
+Oxlint runs its high-signal `correctness` and `suspicious` categories together with type-aware rules and TypeScript compiler diagnostics through `oxlint-tsgolint`. Application repositories additionally enable React and accessibility analysis plus stable Context-value checks. Stale suppressions fail the gate; broad style, pedantic, restriction, nursery, and heuristic `react-perf` policies stay off. Applications generate React Router types first; neither scaffold needs a separate `tsc --noEmit` pass. Oxfmt uses an explicit 100-column policy, with Tailwind v4 class sorting in applications.
 
 Both scaffolds use the modern TypeScript 7/Bun ESM baseline: `ESNext`, preserved modules with bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. App repositories additionally retain React Router's generated-type `rootDirs` mapping. Central audits reject redundant legacy compatibility options.
 

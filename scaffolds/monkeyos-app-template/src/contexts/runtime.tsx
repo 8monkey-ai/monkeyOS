@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, use, useState } from "react";
+import { createContext, type ReactNode, use, useMemo, useState } from "react";
 import type { PublicConfig } from "../config";
 import { createAppClient, type AppSupabaseClient } from "../lib/supabase";
 
@@ -13,7 +13,7 @@ export function RuntimeProvider({
   children: ReactNode;
 }) {
   const [supabase] = useState(() => createAppClient(config));
-  const runtime = { config, supabase };
+  const runtime = useMemo(() => ({ config, supabase }), [config, supabase]);
   return <RuntimeContext value={runtime}>{children}</RuntimeContext>;
 }
 

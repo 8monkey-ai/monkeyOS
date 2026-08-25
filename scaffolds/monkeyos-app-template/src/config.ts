@@ -11,6 +11,17 @@ export const PublicConfigSchema = z.object({
   ),
 });
 
+export const AppIdentitySchema = z.object({
+  schema: z.string().regex(/^[a-z][a-z0-9_]{0,47}$/),
+  secretService: z.string().min(1),
+});
+
+export const SourceDeclarationsSchema = z.array(
+  z.object({ name: z.string(), required: z.boolean() }),
+);
+
+const PackageJsonSchema = z.object({ version: z.string() });
+
 const PrivateConfigSchema = PublicConfigSchema.extend({
   externalValues: z.record(z.string(), z.string()).default({}),
 });
@@ -18,7 +29,7 @@ const PrivateConfigSchema = PublicConfigSchema.extend({
 export type PublicConfig = z.infer<typeof PublicConfigSchema>;
 export type PrivateConfig = z.infer<typeof PrivateConfigSchema>;
 
-type SourceDeclaration = { name: string; required: boolean };
+type SourceDeclaration = z.infer<typeof SourceDeclarationsSchema>[number];
 type LoadOptions = {
   mode?: "development" | "production" | "test";
   explicit?: Record<string, string>;
@@ -33,14 +44,11 @@ async function secretValue(service: string, name: string): Promise<string | unde
 export async function loadConfig(options: LoadOptions = {}): Promise<PrivateConfig> {
   const mode =
     options.mode ?? (process.env.APP_ENV === "production" ? "production" : "development");
-  const identity = (await Bun.file("monkeyos.identity.json").json()) as {
-    schema: string;
-    secretService: string;
-  };
-  const packageJson = (await Bun.file("package.json").json()) as { version: string };
+  const identity = AppIdentitySchema.parse(await Bun.file("monkeyos.identity.json").json());
+  const packageJson = PackageJsonSchema.parse(await Bun.file("package.json").json());
   const declarations =
     options.declarations ??
-    ((await Bun.file("config/external-data-sources.json").json()) as SourceDeclaration[]);
+    SourceDeclarationsSchema.parse(await Bun.file("config/external-data-sources.json").json());
   const explicit = options.explicit ?? {};
   const resolve = async (name: string): Promise<string | undefined> => {
     if (mode === "test") return explicit[name];
@@ -85,7 +93,7 @@ export function loadPublicRuntimeConfig(): Promise<PublicConfig> {
           ? "test"
           : "development";
     const explicit = process.env.TEST_CONFIG_JSON
-      ? (JSON.parse(process.env.TEST_CONFIG_JSON) as Record<string, string>)
+      ? z.record(z.string(), z.string()).parse(JSON.parse(process.env.TEST_CONFIG_JSON))
       : undefined;
     return publicConfig(await loadConfig({ mode, ...(explicit ? { explicit } : {}) }));
   })();

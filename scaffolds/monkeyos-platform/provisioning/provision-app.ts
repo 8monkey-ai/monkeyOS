@@ -1,10 +1,24 @@
 import { join } from "node:path";
+import { z } from "zod";
 import { renderApplicationFile } from "./app-template";
 import { assertNoIdentityCollisions, deriveIdentity } from "./identity";
 import { renderTemplate, sqlLiteral } from "./render";
 import { parseProvisionArgs } from "./types";
 
 type Command = { executable: string; args: string[]; stdin?: string; redacted?: boolean };
+const GitTreeSchema = z.object({
+  tree: z.array(
+    z.object({
+      path: z.string(),
+      mode: z.string(),
+      type: z.string(),
+      sha: z.string(),
+      size: z.number().optional(),
+    }),
+  ),
+});
+const GitBlobSchema = z.object({ content: z.string(), encoding: z.string() });
+const GitShaSchema = z.object({ sha: z.string() });
 
 async function run(command: Command): Promise<void> {
   const process = Bun.spawn([command.executable, ...command.args], {
@@ -57,17 +71,17 @@ async function rewriteTemplateIdentity(repositoryRef: string): Promise<void> {
     "--jq",
     ".tree.sha",
   ]);
-  const tree = JSON.parse(
-    await capture("gh", ["api", `repos/${repositoryRef}/git/trees/${baseTree}?recursive=1`]),
-  ) as {
-    tree: Array<{ path: string; mode: string; type: string; sha: string; size?: number }>;
-  };
+  const tree = GitTreeSchema.parse(
+    JSON.parse(
+      await capture("gh", ["api", `repos/${repositoryRef}/git/trees/${baseTree}?recursive=1`]),
+    ),
+  );
   const changes: Array<{ path: string; mode: string; type: "blob"; sha: string }> = [];
   for (const entry of tree.tree) {
     if (entry.type !== "blob" || (entry.size ?? 0) > 1_000_000) continue;
-    const blob = JSON.parse(
-      await capture("gh", ["api", `repos/${repositoryRef}/git/blobs/${entry.sha}`]),
-    ) as { content: string; encoding: string };
+    const blob = GitBlobSchema.parse(
+      JSON.parse(await capture("gh", ["api", `repos/${repositoryRef}/git/blobs/${entry.sha}`])),
+    );
     if (blob.encoding !== "base64") continue;
     const bytes = Buffer.from(blob.content.replaceAll("\n", ""), "base64");
     let source: string;
@@ -92,7 +106,7 @@ async function rewriteTemplateIdentity(repositoryRef: string): Promise<void> {
       path: entry.path,
       mode: entry.mode,
       type: "blob",
-      sha: (JSON.parse(blobOutput) as { sha: string }).sha,
+      sha: GitShaSchema.parse(JSON.parse(blobOutput)).sha,
     });
   }
   if (!changes.length) return;
@@ -107,7 +121,7 @@ async function rewriteTemplateIdentity(repositoryRef: string): Promise<void> {
   const treeOutput = await new Response(treeProcess.stdout).text();
   if ((await treeProcess.exited) !== 0)
     throw new Error("Could not create provisioned identity tree");
-  const newTree = (JSON.parse(treeOutput) as { sha: string }).sha;
+  const newTree = GitShaSchema.parse(JSON.parse(treeOutput)).sha;
   const commitProcess = Bun.spawn(
     ["gh", "api", "--method", "POST", `repos/${repositoryRef}/git/commits`, "--input", "-"],
     {
@@ -126,14 +140,16 @@ async function rewriteTemplateIdentity(repositoryRef: string): Promise<void> {
   if ((await commitProcess.exited) !== 0) throw new Error("Could not commit provisioned identity");
   await run(
     githubJson("PATCH", `repos/${repositoryRef}/git/refs/heads/main`, {
-      sha: (JSON.parse(commitOutput) as { sha: string }).sha,
+      sha: GitShaSchema.parse(JSON.parse(commitOutput)).sha,
       force: false,
     }),
   );
 }
 
 const options = parseProvisionArgs(Bun.argv.slice(2));
-const [organization, repository] = options.repository.split("/", 2) as [string, string];
+const [organization, repository] = z
+  .tuple([z.string().min(1), z.string().min(1)])
+  .parse(options.repository.split("/", 2));
 const identity = deriveIdentity({ organization, repository, appsDomain: options.appsDomain });
 const root = join(import.meta.dir, "..");
 

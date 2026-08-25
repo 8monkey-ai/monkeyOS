@@ -1,4 +1,6 @@
-const identity = (await Bun.file("monkeyos.identity.json").json()) as { secretService: string };
+import { AppIdentitySchema } from "../src/config";
+
+const identity = AppIdentitySchema.parse(await Bun.file("monkeyos.identity.json").json());
 const statusProcess = Bun.spawn(["bunx", "supabase", "status", "-o", "env"], {
   stdout: "pipe",
   stderr: "inherit",
@@ -28,5 +30,3 @@ await Bun.secrets.set({
 console.log(
   `Stored local Supabase client configuration for ${identity.secretService} without displaying values.`,
 );
-
-export {};

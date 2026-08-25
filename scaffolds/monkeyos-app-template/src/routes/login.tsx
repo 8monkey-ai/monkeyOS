@@ -22,8 +22,18 @@ export default function LoginPage() {
     resolver: zodResolver(LoginSchema),
     defaultValues: { email: "", password: "" },
   });
-  if (!loading && user)
-    return <Navigate to={(location.state as { from?: string } | null)?.from ?? "/"} replace />;
+  const requestedReturnPath =
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "from" in location.state &&
+    typeof location.state.from === "string"
+      ? location.state.from
+      : undefined;
+  const returnPath =
+    requestedReturnPath?.startsWith("/") && !requestedReturnPath.startsWith("//")
+      ? requestedReturnPath
+      : "/";
+  if (!loading && user) return <Navigate to={returnPath} replace />;
   const submit = form.handleSubmit(async (values) => {
     setError(undefined);
     const result = await supabase.auth.signInWithPassword(values);
@@ -62,9 +72,10 @@ export default function LoginPage() {
             Sign in with your existing Supabase identity.
           </p>
           <form className="mt-8 space-y-5" onSubmit={submit}>
-            <label className="block text-sm font-semibold">
+            <label htmlFor="login-email" className="block text-sm font-semibold">
               Email
               <Input
+                id="login-email"
                 className="mt-2"
                 type="email"
                 autoComplete="email"
@@ -75,9 +86,10 @@ export default function LoginPage() {
             {form.formState.errors.email && (
               <p className="text-sm text-rose-600">Enter a valid email.</p>
             )}
-            <label className="block text-sm font-semibold">
+            <label htmlFor="login-password" className="block text-sm font-semibold">
               Password
               <Input
+                id="login-password"
                 className="mt-2"
                 type="password"
                 autoComplete="current-password"

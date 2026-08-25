@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { assertNoIdentityCollisions, deriveIdentity, normalizeRepositoryName } from "./identity";
+import { deriveIdentity } from "./identity";
 
 describe("repository identity", () => {
-  test("normalizes multi-word repositories once", () => {
-    expect(normalizeRepositoryName("finance-reporting")).toBe("finance_reporting");
+  test("derives only deployment coordinates", () => {
     expect(
       deriveIdentity({
         organization: "Example-Co",
@@ -11,22 +10,29 @@ describe("repository identity", () => {
         appsDomain: "apps.example.com",
       }),
     ).toEqual({
-      application: "finance-reporting",
-      schema: "finance_reporting",
-      developerRole: "finance_reporting_dev",
-      runtimeRole: "finance_reporting_runtime",
-      imageRepository: "ghcr.io/example-co/finance-reporting",
       hostname: "finance-reporting.apps.example.com",
-      secretService: "monkeyOS:Example-Co/finance-reporting",
+      imageRepository: "ghcr.io/example-co/finance-reporting",
     });
   });
 
-  test("rejects unsafe and overlong names", () => {
-    expect(() => normalizeRepositoryName("Finance Reporting")).toThrow();
-    expect(() => normalizeRepositoryName(`a-${"b".repeat(48)}`)).toThrow();
+  test("rejects unsafe names", () => {
+    expect(() =>
+      deriveIdentity({
+        organization: "Example-Co",
+        repository: "Finance Reporting",
+        appsDomain: "apps.example.com",
+      }),
+    ).toThrow();
   });
 
-  test("detects normalized collisions", () => {
-    expect(() => assertNoIdentityCollisions(["finance-reporting", "finance_reporting"])).toThrow();
+  test("accepts names that a per-application schema would have had to normalize", () => {
+    // Nothing becomes a PostgreSQL identifier, so punctuation and length are GitHub's concern only
+    // and two repositories that once collided when normalized are now independent.
+    for (const repository of ["finance-reporting", "finance.reporting", `a-${"b".repeat(60)}`]) {
+      expect(
+        deriveIdentity({ organization: "Example-Co", repository, appsDomain: "apps.example.com" })
+          .hostname,
+      ).toBe(`${repository}.apps.example.com`);
+    }
   });
 });

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.0
+
+- Replaced the seven-field `monkeyos.identity.json` with convention: the application owns the default `public` schema and derives its only remaining name, the Bun.secrets namespace, from `package.json`.
+- Removed schema selection from the Supabase client, generated types, type generation, and `supabase/config.toml`, which also repairs the generated `Tables`/`Enums` helpers that resolved to `never` under a custom schema.
+- Adopted the platform-owned baseline migration as a verbatim committed copy with a recorded checksum, instead of maintaining the same DDL in parallel with the provisioner.
+- Restored a deny-by-default posture on `public` and made row level security a deterministic audit requirement for every created table.
+- Made the audit require that `supabase/config.toml` `project_id` equal the package name, so the two remaining name-bearing values cannot drift apart.
+
 ## 2.7.1
 
 - Removed the custom development-test and container-smoke orchestration scripts.

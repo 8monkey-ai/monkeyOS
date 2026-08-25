@@ -11,6 +11,7 @@
 ## Non-negotiable boundaries
 
 - Preserve repository-derived identity and portability across GitHub organizations, providers, domains, accounts, and runtime pools.
+- Keep application identity convention rather than stored state: one Supabase project per application, the default `public` schema, fixed `app_dev` and `app_runtime` roles, and no application name in source. The baseline migration is platform-owned and byte-identical; every table needs row level security.
 - Never introduce a monkeyOS-owned application registry, user directory, audit store, data catalog, deployment-state database, infrastructure-state backend, or business schema.
 - Keep Contributor, Deployer, and Platform Admin authority separate. Applications cannot choose privileged deployment targets or mechanics.
 - Keep application workflows thin and central behavior compatible with the protected `v1` channel.

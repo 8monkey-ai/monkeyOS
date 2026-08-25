@@ -1,6 +1,6 @@
 {
   "name": "monkeyos-app-template",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:test": "supabase start && supabase db reset && supabase test db",
-    "db:types": "supabase gen types typescript --local --schema monkeyos_app_template > src/lib/database.types.ts",
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "config:local": "bun scripts/store-local-supabase-config.ts",
     "secret:add": "bun scripts/add-secret.ts",
     "skills:sync": "bun scripts/sync-platform-skills.ts",

@@ -17,7 +17,7 @@ WORKDIR /app
 ENV APP_ENV=production PORT=3000
 COPY --from=runtime-dependencies --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=build --chown=bun:bun /app/build ./build
-COPY --chown=bun:bun package.json monkeyos.identity.json server.ts ./
+COPY --chown=bun:bun package.json server.ts ./
 COPY --chown=bun:bun config ./config
 USER bun
 EXPOSE 3000

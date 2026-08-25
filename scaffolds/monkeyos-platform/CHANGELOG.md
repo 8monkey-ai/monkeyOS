@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.0
+
+- Made application identity convention rather than configuration: applications keep no identity file, own the default `public` schema, and write the repository name only to the credential-store namespace and the local Supabase container prefix.
+- Deleted the whole-repository text rewrite, the ordered literal replacement table, repository-name normalization, and the cross-repository collision check, none of which have anything left to protect.
+- Reduced `deriveIdentity` to deployment coordinates and replaced the tree rewrite with two targeted name adoptions.
+- Moved the application baseline into `supabase/baseline` as one canonical file, copied verbatim into the template with a recorded checksum, applied by the provisioner and recorded in Supabase migration history; `provision-app.sql` now renders only cluster roles and the initial admin.
+- Replaced schema isolation with row level security as the enforced boundary: the baseline revokes Supabase's permissive `public` defaults for existing and future objects, and the application audit fails any table created without RLS or any reintroduced schema selection.
+
 ## 2.7.1
 
 - Centralized production-image startup, readiness, browser smoke testing, failure logs, and cleanup in the reusable CI workflow.

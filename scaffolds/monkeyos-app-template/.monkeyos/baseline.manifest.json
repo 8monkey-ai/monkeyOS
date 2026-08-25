@@ -1,0 +1,7 @@
+{
+  "source": "monkeyos-platform/supabase/baseline",
+  "compatibility": "v1",
+  "files": {
+    "20200101000000_monkeyos_baseline.sql": "a097935efe0a5d8c51cc863df4e5963d96b48ab8587e97eebdc5d45faa21bb0c"
+  }
+}

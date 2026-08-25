@@ -5,6 +5,7 @@ import { z } from "zod";
 type Finding = { level: "BLOCKING" | "IMPORTANT"; message: string };
 const StringRecord = z.record(z.string(), z.string());
 const PackageJsonSchema = z.object({
+  name: z.string().min(1),
   version: z.string().optional(),
   engines: z.object({ bun: z.string().optional() }).optional(),
   packageManager: z.string().optional(),
@@ -341,6 +342,114 @@ export async function auditRepository(root: string): Promise<Finding[]> {
         message: `${workflow} is not a protected central @v1 caller`,
       });
   }
+  // The application owns exactly one Supabase project and therefore the default `public` schema.
+  // Nothing may reintroduce a per-application schema name or a stored identity file.
+  if (await exists(join(root, "monkeyos.identity.json"))) {
+    findings.push({
+      level: "BLOCKING",
+      message:
+        "monkeyos.identity.json returned; identity is derived from the repository name, not stored",
+    });
+  }
+  if (packageJson.scripts?.["db:types"]?.includes("--schema")) {
+    findings.push({
+      level: "BLOCKING",
+      message: "db:types must generate the default schema without a --schema selection",
+    });
+  }
+  const supabaseConfig = await readFile(join(root, "supabase", "config.toml"), "utf8");
+  // The two values that carry the repository name must agree. A half-finished rename is the only
+  // way identity can now go wrong, and it would silently split the credential namespace from the
+  // local container prefix.
+  const projectId = /^project_id\s*=\s*"([^"]*)"/m.exec(supabaseConfig)?.[1];
+  if (!projectId) {
+    findings.push({ level: "BLOCKING", message: "supabase/config.toml declares no project_id" });
+  } else if (projectId !== packageJson.name) {
+    findings.push({
+      level: "BLOCKING",
+      message: `supabase/config.toml project_id ${projectId} does not match the package name ${packageJson.name}`,
+    });
+  }
+  for (const setting of ["schemas", "extra_search_path"]) {
+    if (new RegExp(`^${setting}\\s*=`, "m").test(supabaseConfig)) {
+      findings.push({
+        level: "BLOCKING",
+        message: `supabase/config.toml must leave ${setting} at the default that exposes public`,
+      });
+    }
+  }
+  for (const file of files.filter((candidate) => /^src\/.*\.tsx?$/.test(candidate))) {
+    const source = await readFile(join(root, file), "utf8");
+    if (/db\s*:\s*\{\s*schema/.test(source) || /SupabaseClient<\s*Database\s*,/.test(source)) {
+      findings.push({
+        level: "BLOCKING",
+        message: `${file} selects a Supabase schema; the application owns the default public schema`,
+      });
+    }
+  }
+
+  // Row level security, not schema isolation, is what keeps a new table unreachable. This check is
+  // independent of any schema name and is the reason the default schema is safe to own.
+  const migrations = files.filter((candidate) => /^supabase\/migrations\/.*\.sql$/.test(candidate));
+  if (!migrations.length)
+    findings.push({ level: "BLOCKING", message: "No Supabase migration is present" });
+  let migrationSql = "";
+  for (const file of migrations) migrationSql += `\n${await readFile(join(root, file), "utf8")}`;
+  const secured = new Set(
+    [
+      ...migrationSql.matchAll(
+        /alter\s+table\s+(?:only\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s+enable\s+row\s+level\s+security/gi,
+      ),
+    ].map((match) => match[1]!.toLowerCase()),
+  );
+  for (const match of migrationSql.matchAll(
+    /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?/gi,
+  )) {
+    const table = match[1]!.toLowerCase();
+    if (!secured.has(table)) {
+      findings.push({
+        level: "BLOCKING",
+        message: `Table ${table} is created without row level security`,
+      });
+    }
+  }
+  if (/disable\s+row\s+level\s+security/i.test(migrationSql)) {
+    findings.push({ level: "BLOCKING", message: "A migration disables row level security" });
+  }
+  if (/create\s+schema/i.test(migrationSql)) {
+    findings.push({
+      level: "BLOCKING",
+      message: "A migration creates a schema; the application owns the default public schema",
+    });
+  }
+
+  // The baseline is platform-owned and byte-identical across applications.
+  const manifestPath = join(root, ".monkeyos", "baseline.manifest.json");
+  if (!(await exists(manifestPath))) {
+    findings.push({ level: "BLOCKING", message: "Missing .monkeyos/baseline.manifest.json" });
+  } else {
+    const manifest = z
+      .object({ files: StringRecord })
+      .parse(JSON.parse(await readFile(manifestPath, "utf8")));
+    for (const [file, expected] of Object.entries(manifest.files)) {
+      const path = join(root, "supabase", "migrations", file);
+      if (!(await exists(path))) {
+        findings.push({
+          level: "BLOCKING",
+          message: `Missing platform baseline migration: ${file}`,
+        });
+        continue;
+      }
+      const actual = new Bun.CryptoHasher("sha256").update(await readFile(path)).digest("hex");
+      if (actual !== expected) {
+        findings.push({
+          level: "BLOCKING",
+          message: `Platform baseline ${file} does not match its recorded checksum; restore the platform-owned file instead of editing it`,
+        });
+      }
+    }
+  }
+
   const sources = ExternalDeclarationsSchema.parse(
     JSON.parse(await readFile(join(root, "config", "external-data-sources.json"), "utf8")),
   );

@@ -1,168 +1,59 @@
--- Rendered only by provisioning/provision-app.ts after strict identifier validation.
--- This creates no monkeyOS registry or state tables.
+-- Admin bootstrap, rendered and executed by provisioning/provision-app.ts immediately after the
+-- canonical baseline in supabase/baseline. It creates no monkeyOS registry or state.
+--
+-- Application tables, policies, functions, and grants to `authenticated` are NOT duplicated here:
+-- they live once, in the baseline that every application also has verbatim. This file owns only
+-- what an application cannot grant itself — cluster roles — plus the first admin.
+--
+-- Roles are not named after the application. Each application owns its own Supabase project, so
+-- these names are unique where they exist. A role created inside a *foreign* source database to
+-- receive a cross-domain grant is a different role and must stay named after the consuming
+-- repository; see cross-domain-contracts.sql.
 begin;
 
 do $roles$
 begin
-  if not exists (select 1 from pg_roles where rolname = '__DEV_ROLE__') then
-    create role __DEV_ROLE__ nologin nosuperuser nocreatedb nocreaterole noinherit;
+  if not exists (select 1 from pg_roles where rolname = 'app_dev') then
+    create role app_dev nologin nosuperuser nocreatedb nocreaterole noinherit;
   end if;
-  if not exists (select 1 from pg_roles where rolname = '__RUNTIME_ROLE__') then
-    create role __RUNTIME_ROLE__ nologin nosuperuser nocreatedb nocreaterole noinherit;
+  if not exists (select 1 from pg_roles where rolname = 'app_runtime') then
+    create role app_runtime nologin nosuperuser nocreatedb nocreaterole noinherit;
   end if;
 end
 $roles$;
 
-create schema if not exists __APP_SCHEMA__;
-revoke all on schema __APP_SCHEMA__ from public, anon;
-grant usage, create on schema __APP_SCHEMA__ to __DEV_ROLE__;
-grant usage on schema __APP_SCHEMA__ to __RUNTIME_ROLE__, authenticated, service_role;
+grant usage, create on schema public to app_dev;
+grant usage on schema public to app_runtime;
+grant select, insert, update, delete on all tables in schema public to app_dev, app_runtime;
+grant usage, select on all sequences in schema public to app_dev, app_runtime;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to app_dev, app_runtime;
+alter default privileges in schema public grant usage, select on sequences to app_dev, app_runtime;
+revoke create on schema public from app_runtime;
 
-create table if not exists __APP_SCHEMA__.members (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  role text not null check (role in ('admin', 'member')),
-  created_at timestamptz not null default now(),
-  created_by uuid references auth.users(id) on delete set null
+-- Record the baseline in Supabase migration history so the application's own `supabase db push`
+-- continues from it instead of reapplying it.
+create schema if not exists supabase_migrations;
+create table if not exists supabase_migrations.schema_migrations (
+  version text primary key,
+  statements text[],
+  name text
 );
+insert into supabase_migrations.schema_migrations (version, name)
+values ('__BASELINE_VERSION__', '__BASELINE_NAME__')
+on conflict (version) do nothing;
 
-create index if not exists members_created_by_idx on __APP_SCHEMA__.members(created_by);
-
-create table if not exists __APP_SCHEMA__.audit_log (
-  id bigint generated always as identity primary key,
-  occurred_at timestamptz not null default now(),
-  actor_user_id uuid references auth.users(id) on delete set null,
-  action text not null,
-  entity text not null,
-  record_id text,
-  before_data jsonb,
-  after_data jsonb
-);
-create index if not exists audit_log_occurred_at_idx on __APP_SCHEMA__.audit_log(occurred_at desc);
-create index if not exists audit_log_actor_idx on __APP_SCHEMA__.audit_log(actor_user_id);
-create index if not exists audit_log_entity_record_idx on __APP_SCHEMA__.audit_log(entity, record_id);
-
-create or replace function __APP_SCHEMA__.is_member()
-returns boolean language sql stable security definer set search_path = ''
-as $$
-  select (select auth.uid()) is not null
-    and exists (select 1 from __APP_SCHEMA__.members where user_id = (select auth.uid()));
-$$;
-
-create or replace function __APP_SCHEMA__.is_admin()
-returns boolean language sql stable security definer set search_path = ''
-as $$
-  select (select auth.uid()) is not null
-    and exists (
-      select 1 from __APP_SCHEMA__.members
-      where user_id = (select auth.uid()) and role = 'admin'
-    );
-$$;
-
-create or replace function __APP_SCHEMA__.audit_membership_change()
-returns trigger language plpgsql security definer set search_path = ''
-as $$
-begin
-  insert into __APP_SCHEMA__.audit_log(actor_user_id, action, entity, record_id, before_data, after_data)
-  values (
-    (select auth.uid()),
-    'membership.' || lower(tg_op),
-    'member',
-    coalesce(new.user_id, old.user_id)::text,
-    case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end,
-    case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end
-  );
-  return coalesce(new, old);
-end;
-$$;
-
-drop trigger if exists members_audit_trigger on __APP_SCHEMA__.members;
-create trigger members_audit_trigger
-after insert or update or delete on __APP_SCHEMA__.members
-for each row execute function __APP_SCHEMA__.audit_membership_change();
-
-create or replace function __APP_SCHEMA__.protect_last_admin()
-returns trigger language plpgsql security definer set search_path = ''
-as $$
-begin
-  if old.role = 'admin' and (tg_op = 'DELETE' or new.role <> 'admin')
-    and (select count(*) from __APP_SCHEMA__.members where role = 'admin') <= 1 then
-    raise exception 'cannot remove the final application admin' using errcode = '23514';
-  end if;
-  return coalesce(new, old);
-end;
-$$;
-
-drop trigger if exists members_last_admin_trigger on __APP_SCHEMA__.members;
-create trigger members_last_admin_trigger before update or delete on __APP_SCHEMA__.members
-for each row execute function __APP_SCHEMA__.protect_last_admin();
-
-create or replace function __APP_SCHEMA__.add_member_by_email(target_email text, target_role text default 'member')
-returns __APP_SCHEMA__.members
-language plpgsql security definer set search_path = ''
-as $$
-declare
-  matched_user_id uuid;
-  added __APP_SCHEMA__.members;
-begin
-  if (select auth.uid()) is null or not __APP_SCHEMA__.is_admin() then
-    raise exception 'not authorized' using errcode = '42501';
-  end if;
-  if target_email <> btrim(target_email) or target_email !~ '^[^@[:space:]]+@[^@[:space:]]+$' then
-    raise exception 'invalid exact email' using errcode = '22023';
-  end if;
-  if target_role not in ('admin', 'member') then
-    raise exception 'invalid role' using errcode = '22023';
-  end if;
-  select id into matched_user_id from auth.users where lower(email) = lower(target_email) limit 1;
-  if matched_user_id is null then
-    raise exception 'existing Auth user not found' using errcode = 'P0002';
-  end if;
-  insert into __APP_SCHEMA__.members(user_id, role, created_by)
-  values (matched_user_id, target_role, (select auth.uid()))
-  returning * into added;
-  return added;
-end;
-$$;
-
-alter table __APP_SCHEMA__.members enable row level security;
-alter table __APP_SCHEMA__.audit_log enable row level security;
-
-drop policy if exists members_select on __APP_SCHEMA__.members;
-create policy members_select on __APP_SCHEMA__.members for select to authenticated
-using (user_id = (select auth.uid()) or (select __APP_SCHEMA__.is_admin()));
-drop policy if exists members_update on __APP_SCHEMA__.members;
-create policy members_update on __APP_SCHEMA__.members for update to authenticated
-using ((select __APP_SCHEMA__.is_admin())) with check ((select __APP_SCHEMA__.is_admin()));
-drop policy if exists members_delete on __APP_SCHEMA__.members;
-create policy members_delete on __APP_SCHEMA__.members for delete to authenticated
-using ((select __APP_SCHEMA__.is_admin()) and user_id <> (select auth.uid()));
-
-drop policy if exists audit_select on __APP_SCHEMA__.audit_log;
-create policy audit_select on __APP_SCHEMA__.audit_log for select to authenticated
-using ((select __APP_SCHEMA__.is_member()));
-
-revoke all on all tables in schema __APP_SCHEMA__ from public, anon, authenticated;
-revoke all on all functions in schema __APP_SCHEMA__ from public, anon, authenticated;
-grant select on __APP_SCHEMA__.members, __APP_SCHEMA__.audit_log to authenticated;
-grant update(role), delete on __APP_SCHEMA__.members to authenticated;
-grant usage, select on all sequences in schema __APP_SCHEMA__ to authenticated;
-grant execute on function __APP_SCHEMA__.is_member(), __APP_SCHEMA__.is_admin(), __APP_SCHEMA__.add_member_by_email(text, text) to authenticated;
-
-grant select, insert, update, delete on all tables in schema __APP_SCHEMA__ to __DEV_ROLE__;
-grant usage, select on all sequences in schema __APP_SCHEMA__ to __DEV_ROLE__;
-grant select, insert, update, delete on all tables in schema __APP_SCHEMA__ to __RUNTIME_ROLE__;
-grant usage, select on all sequences in schema __APP_SCHEMA__ to __RUNTIME_ROLE__;
-alter default privileges in schema __APP_SCHEMA__ grant select, insert, update, delete on tables to __DEV_ROLE__;
-alter default privileges in schema __APP_SCHEMA__ grant select, insert, update, delete on tables to __RUNTIME_ROLE__;
-alter default privileges in schema __APP_SCHEMA__ grant usage, select on sequences to __DEV_ROLE__, __RUNTIME_ROLE__;
-
-insert into __APP_SCHEMA__.members(user_id, role, created_by)
+insert into public.members(user_id, role, created_by)
 select id, 'admin', null from auth.users where lower(email) = lower(__INITIAL_ADMIN_EMAIL_SQL__)
 on conflict (user_id) do update set role = 'admin';
 
 do $admin$
 begin
-  if not exists (select 1 from __APP_SCHEMA__.members m join auth.users u on u.id = m.user_id where lower(u.email) = lower(__INITIAL_ADMIN_EMAIL_SQL__) and m.role = 'admin') then
+  if not exists (
+    select 1 from public.members m
+    join auth.users u on u.id = m.user_id
+    where lower(u.email) = lower(__INITIAL_ADMIN_EMAIL_SQL__) and m.role = 'admin'
+  ) then
     raise exception 'Initial admin must already exist in Supabase Auth';
   end if;
 end

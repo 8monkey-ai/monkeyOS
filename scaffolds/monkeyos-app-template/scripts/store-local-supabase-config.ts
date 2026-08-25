@@ -1,6 +1,6 @@
-import { AppIdentitySchema } from "../src/config";
+import { secretService } from "../src/config";
 
-const identity = AppIdentitySchema.parse(await Bun.file("monkeyos.identity.json").json());
+const service = await secretService();
 const statusProcess = Bun.spawn(["bunx", "supabase", "status", "-o", "env"], {
   stdout: "pipe",
   stderr: "inherit",
@@ -17,16 +17,10 @@ const supabaseUrl = values.API_URL;
 const publishableKey = values.PUBLISHABLE_KEY ?? values.ANON_KEY;
 if (!supabaseUrl || !publishableKey)
   throw new Error("Supabase status did not return public local client configuration");
+await Bun.secrets.set({ service, name: "SUPABASE_URL", value: supabaseUrl });
 await Bun.secrets.set({
-  service: identity.secretService,
-  name: "SUPABASE_URL",
-  value: supabaseUrl,
-});
-await Bun.secrets.set({
-  service: identity.secretService,
+  service,
   name: "SUPABASE_PUBLISHABLE_KEY",
   value: publishableKey,
 });
-console.log(
-  `Stored local Supabase client configuration for ${identity.secretService} without displaying values.`,
-);
+console.log(`Stored local Supabase client configuration for ${service} without displaying values.`);

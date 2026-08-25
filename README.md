@@ -163,7 +163,7 @@ GitHub
 Supabase Auth
 → identity
 
-<app>.*
+the application Supabase project
 → application state, permissions, audit history
 
 Cloudflare
@@ -179,7 +179,7 @@ A standard application never needs to query a monkeyOS database to operate.
 
 # 4. Repository Identity Is Application Identity
 
-Repository identity determines application identity.
+Repository identity determines application identity. Nothing inside an application is named after it.
 
 For:
 
@@ -190,27 +190,30 @@ For:
 monkeyOS derives:
 
 ```text
-application        finance
-database schema    finance
-developer role     finance_dev
-runtime role       finance_runtime
 container image    ghcr.io/<organization>/finance:<git-sha>
 production URL     finance.<apps-domain>
 ```
 
-Multi-word repositories normalize predictably:
+Everything else is a fixed convention, identical in every application:
 
 ```text
-finance-reporting → finance_reporting
-hr-onboarding     → hr_onboarding
-ops-planning      → ops_planning
+database schema    public
+developer role     app_dev
+runtime role       app_runtime
 ```
 
-One normalization implementation is reused by provisioning, migrations, local development, and deployment.
+Each application owns one Supabase project, so it owns that project's default schema and needs no per-application schema or role name.
 
-Invalid or colliding names fail explicitly.
+Exactly two values in a repository carry its name, and neither is read by application code:
 
-There is no separate application registry.
+```text
+package.json     name         → namespaces the local OS credential store
+supabase/config.toml project_id → prefixes local Supabase containers
+```
+
+Provisioning sets both, and the application audit fails if they disagree.
+
+There is no stored identity file, no name normalization, and no separate application registry.
 
 ---
 
@@ -220,12 +223,6 @@ A standard app should require almost no platform configuration:
 
 ```text
 repository
-↓
-application identity
-↓
-database schema
-↓
-database roles
 ↓
 container identity
 ↓
@@ -842,17 +839,19 @@ The governing principle is:
 
 ### Own locally
 
-Each application owns its schema and business state:
+Each application owns its own Supabase project, and inside it the default `public` schema:
 
 ```text
-Production Supabase
-├── auth
-├── finance
-├── hr
-├── ops
-├── procurement
-└── reporting
+finance Supabase project
+├── auth        → Supabase Auth
+└── public      → finance business state
+
+hr Supabase project
+├── auth        → Supabase Auth
+└── public      → hr business state
 ```
+
+Isolation comes from the project boundary and from row level security, not from a schema name, so every table must enable row level security in the migration that creates it.
 
 There is no monkeyOS platform-state schema.
 
@@ -860,7 +859,7 @@ monkeyOS also does not create central business concepts such as employees, store
 
 ### Discover globally
 
-Development roles may inspect database structure across schemas:
+Development roles may inspect the structure of databases they are permitted to read from:
 
 ```text
 tables
@@ -876,11 +875,11 @@ without receiving access to underlying rows.
 For example:
 
 ```text
-finance_dev
+own project
+public.*                    → metadata + data
 
-finance.*      → metadata + data
-hr.*           → metadata only
-ops.*          → metadata only
+reporting source database
+source_domain.*             → metadata only, via finance_reporting_dev
 ```
 
 Metadata comes from PostgreSQL's actual catalogs rather than a manually maintained monkeyOS catalog.
@@ -925,7 +924,7 @@ For example:
 
 ```text
 finance app
-├── finance schema
+├── own project, public schema
 │   → read/write
 │
 ├── reporting database
@@ -1109,34 +1108,27 @@ External/shared database access is a dependency, not ownership.
 
 # 29. Supabase & Database Security
 
-One Supabase project represents the shared production environment/trust boundary rather than one application.
-
-Shared:
-
-```text
-Supabase Auth
-```
+One Supabase project represents one application, so the project boundary is the outer trust boundary and the application owns the project's default `public` schema.
 
 Application-owned:
 
 ```text
-finance.*
-hr.*
-ops.*
+public.*
 ```
 
-A developer role such as `finance_dev` gets own-schema development access, structural metadata discovery, and explicit cross-domain contracts.
+`app_dev` gets development access to `public`, structural metadata discovery, and explicit cross-domain contracts.
 
-A runtime role such as `finance_runtime` gets only required own-schema access and explicit runtime contracts, with no DDL or global metadata discovery.
+`app_runtime` gets only required access to `public` and explicit runtime contracts, with no DDL, no `create` on the schema, and no global metadata discovery.
 
 Applications never receive broad credentials such as `postgres`, project owner, or `service_role`.
 
-Security defaults are fail-closed:
+Because `public` ships permissive defaults, the platform baseline restores a fail-closed posture before anything is created:
 
 ```text
-Data API                         ON
-Automatically expose new tables OFF
-Automatic RLS                   ON
+revoke the schema from PUBLIC and anon   (the PUBLIC grant is inherited, so anon alone is not enough)
+revoke default privileges on future tables, sequences, and functions
+row level security on every table, in the migration that creates it
+grants that never name anon or public
 ```
 
 SQL migrations are canonical.
@@ -2045,7 +2037,7 @@ Platform Team creates repository
 ↓
 repository identity derives application identity
 ↓
-create app schema + roles
+apply the canonical baseline and create app_dev + app_runtime
 ↓
 configure production environment
 ↓
@@ -2109,7 +2101,7 @@ Application data:
 
 ```text
 Application
-├── own Supabase schema
+├── own project, public schema
 │   → read/write
 │
 ├── shared/internal DB

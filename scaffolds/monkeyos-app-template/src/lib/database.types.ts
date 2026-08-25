@@ -1,7 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-  monkeyos_app_template: {
+  public: {
     Tables: {
       audit_log: {
         Row: {
@@ -205,7 +205,7 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  monkeyos_app_template: {
+  public: {
     Enums: {},
   },
 } as const;

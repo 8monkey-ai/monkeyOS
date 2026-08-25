@@ -3,7 +3,6 @@ import { z } from "zod";
 export const PublicConfigSchema = z.object({
   supabaseUrl: z.url(),
   supabasePublishableKey: z.string().min(20),
-  appSchema: z.string().regex(/^[a-z][a-z0-9_]{0,47}$/),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
   gitSha: z.string().regex(/^(?:development|test|[0-9a-f]{7,40})$/),
   externalSources: z.array(
@@ -11,16 +10,11 @@ export const PublicConfigSchema = z.object({
   ),
 });
 
-export const AppIdentitySchema = z.object({
-  schema: z.string().regex(/^[a-z][a-z0-9_]{0,47}$/),
-  secretService: z.string().min(1),
-});
-
 export const SourceDeclarationsSchema = z.array(
   z.object({ name: z.string(), required: z.boolean() }),
 );
 
-const PackageJsonSchema = z.object({ version: z.string() });
+const PackageJsonSchema = z.object({ name: z.string().min(1), version: z.string() });
 
 const PrivateConfigSchema = PublicConfigSchema.extend({
   externalValues: z.record(z.string(), z.string()).default({}),
@@ -41,10 +35,18 @@ async function secretValue(service: string, name: string): Promise<string | unde
   return value ?? undefined;
 }
 
+/**
+ * The OS credential-store namespace for local development. It is derived from the repository
+ * name rather than configured, and it is the only application-specific name in the repository.
+ */
+export async function secretService(): Promise<string> {
+  const { name } = PackageJsonSchema.parse(await Bun.file("package.json").json());
+  return `monkeyOS:${name}`;
+}
+
 export async function loadConfig(options: LoadOptions = {}): Promise<PrivateConfig> {
   const mode =
     options.mode ?? (process.env.APP_ENV === "production" ? "production" : "development");
-  const identity = AppIdentitySchema.parse(await Bun.file("monkeyos.identity.json").json());
   const packageJson = PackageJsonSchema.parse(await Bun.file("package.json").json());
   const declarations =
     options.declarations ??
@@ -53,7 +55,7 @@ export async function loadConfig(options: LoadOptions = {}): Promise<PrivateConf
   const resolve = async (name: string): Promise<string | undefined> => {
     if (mode === "test") return explicit[name];
     if (mode === "production") return process.env[name];
-    return secretValue(identity.secretService, name);
+    return secretValue(`monkeyOS:${packageJson.name}`, name);
   };
   const externalValues: Record<string, string> = {};
   for (const source of declarations) {
@@ -65,7 +67,6 @@ export async function loadConfig(options: LoadOptions = {}): Promise<PrivateConf
   return PrivateConfigSchema.parse({
     supabaseUrl: await resolve("SUPABASE_URL"),
     supabasePublishableKey: await resolve("SUPABASE_PUBLISHABLE_KEY"),
-    appSchema: process.env.APP_SCHEMA ?? identity.schema,
     version: process.env.APP_VERSION ?? packageJson.version,
     gitSha: process.env.GIT_SHA ?? (mode === "test" ? "test" : "development"),
     externalValues,

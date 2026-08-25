@@ -1,12 +1,12 @@
 import { createInterface } from "node:readline/promises";
-import { AppIdentitySchema, SourceDeclarationsSchema } from "../src/config";
+import { secretService, SourceDeclarationsSchema } from "../src/config";
 
 const name = Bun.argv[2];
 if (!name || !/^[A-Z][A-Z0-9_]*$/.test(name)) {
   console.error("Usage: bun run secret:add <DECLARED_NAME>");
   process.exit(2);
 }
-const identity = AppIdentitySchema.parse(await Bun.file("monkeyos.identity.json").json());
+const service = await secretService();
 const declarations = SourceDeclarationsSchema.parse(
   await Bun.file("config/external-data-sources.json").json(),
 );
@@ -30,6 +30,6 @@ try {
   console.log();
 }
 if (!value) throw new Error("Secret value was empty; nothing stored");
-await Bun.secrets.set({ service: identity.secretService, name, value });
+await Bun.secrets.set({ service, name, value });
 value = "";
-console.log(`${name} stored in the OS credential store for ${identity.secretService}.`);
+console.log(`${name} stored in the OS credential store for ${service}.`);

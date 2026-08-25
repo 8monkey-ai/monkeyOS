@@ -1,24 +1,16 @@
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { renderApplicationFile } from "./app-template";
-import { assertNoIdentityCollisions, deriveIdentity } from "./identity";
+import { deriveIdentity } from "./identity";
 import { renderTemplate, sqlLiteral } from "./render";
 import { parseProvisionArgs } from "./types";
 
 type Command = { executable: string; args: string[]; stdin?: string; redacted?: boolean };
-const GitTreeSchema = z.object({
-  tree: z.array(
-    z.object({
-      path: z.string(),
-      mode: z.string(),
-      type: z.string(),
-      sha: z.string(),
-      size: z.number().optional(),
-    }),
-  ),
+const GitContentSchema = z.object({
+  content: z.string(),
+  encoding: z.string(),
+  sha: z.string(),
 });
-const GitBlobSchema = z.object({ content: z.string(), encoding: z.string() });
-const GitShaSchema = z.object({ sha: z.string() });
 
 async function run(command: Command): Promise<void> {
   const process = Bun.spawn([command.executable, ...command.args], {
@@ -58,92 +50,42 @@ async function workflowUpdate(repository: string, path: string, content: string)
   });
 }
 
-async function rewriteTemplateIdentity(repositoryRef: string): Promise<void> {
-  const headSha = await capture("gh", [
-    "api",
-    `repos/${repositoryRef}/git/ref/heads/main`,
-    "--jq",
-    ".object.sha",
-  ]);
-  const baseTree = await capture("gh", [
-    "api",
-    `repos/${repositoryRef}/git/commits/${headSha}`,
-    "--jq",
-    ".tree.sha",
-  ]);
-  const tree = GitTreeSchema.parse(
-    JSON.parse(
-      await capture("gh", ["api", `repos/${repositoryRef}/git/trees/${baseTree}?recursive=1`]),
-    ),
-  );
-  const changes: Array<{ path: string; mode: string; type: "blob"; sha: string }> = [];
-  for (const entry of tree.tree) {
-    if (entry.type !== "blob" || (entry.size ?? 0) > 1_000_000) continue;
-    const blob = GitBlobSchema.parse(
-      JSON.parse(await capture("gh", ["api", `repos/${repositoryRef}/git/blobs/${entry.sha}`])),
+/**
+ * Adopts the repository name. Only two values in an application are named after it, and neither is
+ * read by application code: the `package.json` name that namespaces the developer credential store,
+ * and the local Supabase container prefix. There is no schema, role, hostname, or image name to
+ * propagate into source, so this replaces the former whole-repository text rewrite.
+ */
+const nameRewrites = [
+  { path: "package.json", pattern: /^(\s*"name":\s*)"[^"]*"/m, label: "package name" },
+  {
+    path: "supabase/config.toml",
+    pattern: /^(project_id\s*=\s*)"[^"]*"/m,
+    label: "Supabase project id",
+  },
+] as const;
+
+async function adoptRepositoryName(repositoryRef: string, name: string): Promise<void> {
+  const quoted = JSON.stringify(name);
+  for (const rewrite of nameRewrites) {
+    const file = GitContentSchema.parse(
+      JSON.parse(await capture("gh", ["api", `repos/${repositoryRef}/contents/${rewrite.path}`])),
     );
-    if (blob.encoding !== "base64") continue;
-    const bytes = Buffer.from(blob.content.replaceAll("\n", ""), "base64");
-    let source: string;
-    try {
-      source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    } catch {
-      continue;
+    if (file.encoding !== "base64") throw new Error(`Unexpected encoding for ${rewrite.path}`);
+    const source = Buffer.from(file.content.replaceAll("\n", ""), "base64").toString("utf8");
+    const rendered = source.replace(rewrite.pattern, (_, prefix: string) => `${prefix}${quoted}`);
+    if (rendered === source) {
+      if (rewrite.pattern.test(source)) continue;
+      throw new Error(`Could not set the ${rewrite.label} in ${rewrite.path}`);
     }
-    const rendered = renderApplicationFile(source, organization, identity);
-    if (rendered === source) continue;
-    const blobProcess = Bun.spawn(
-      ["gh", "api", "--method", "POST", `repos/${repositoryRef}/git/blobs`, "--input", "-"],
-      {
-        stdin: new Blob([JSON.stringify({ content: rendered, encoding: "utf-8" })]),
-        stdout: "pipe",
-        stderr: "inherit",
-      },
+    await run(
+      githubJson("PUT", `repos/${repositoryRef}/contents/${rewrite.path}`, {
+        message: `chore: adopt ${name} as the application name`,
+        content: Buffer.from(rendered).toString("base64"),
+        sha: file.sha,
+      }),
     );
-    const blobOutput = await new Response(blobProcess.stdout).text();
-    if ((await blobProcess.exited) !== 0) throw new Error(`Could not rewrite ${entry.path}`);
-    changes.push({
-      path: entry.path,
-      mode: entry.mode,
-      type: "blob",
-      sha: GitShaSchema.parse(JSON.parse(blobOutput)).sha,
-    });
   }
-  if (!changes.length) return;
-  const treeProcess = Bun.spawn(
-    ["gh", "api", "--method", "POST", `repos/${repositoryRef}/git/trees`, "--input", "-"],
-    {
-      stdin: new Blob([JSON.stringify({ base_tree: baseTree, tree: changes })]),
-      stdout: "pipe",
-      stderr: "inherit",
-    },
-  );
-  const treeOutput = await new Response(treeProcess.stdout).text();
-  if ((await treeProcess.exited) !== 0)
-    throw new Error("Could not create provisioned identity tree");
-  const newTree = GitShaSchema.parse(JSON.parse(treeOutput)).sha;
-  const commitProcess = Bun.spawn(
-    ["gh", "api", "--method", "POST", `repos/${repositoryRef}/git/commits`, "--input", "-"],
-    {
-      stdin: new Blob([
-        JSON.stringify({
-          message: "chore: derive application identity from repository",
-          tree: newTree,
-          parents: [headSha],
-        }),
-      ]),
-      stdout: "pipe",
-      stderr: "inherit",
-    },
-  );
-  const commitOutput = await new Response(commitProcess.stdout).text();
-  if ((await commitProcess.exited) !== 0) throw new Error("Could not commit provisioned identity");
-  await run(
-    githubJson("PATCH", `repos/${repositoryRef}/git/refs/heads/main`, {
-      sha: GitShaSchema.parse(JSON.parse(commitOutput)).sha,
-      force: false,
-    }),
-  );
 }
 
 const options = parseProvisionArgs(Bun.argv.slice(2));
@@ -189,21 +131,37 @@ const rulesetBody = {
   bypass_actors: [],
 };
 
-const sqlTemplate = await Bun.file(join(root, "supabase", "admin", "provision-app.sql")).text();
-const sql = renderTemplate(sqlTemplate, {
-  APP_SCHEMA: identity.schema,
-  DEV_ROLE: identity.developerRole,
-  RUNTIME_ROLE: identity.runtimeRole,
-  INITIAL_ADMIN_EMAIL_SQL: sqlLiteral(options.initialAdminEmail),
-});
+// The baseline is applied from the same canonical file every application receives verbatim, so the
+// provisioned database and the application's migration history cannot describe different schemas.
+const baselineDirectory = join(root, "supabase", "baseline");
+const baselineFile = z
+  .string()
+  .regex(/^(\d{14})_([a-z0-9_]+)\.sql$/)
+  .parse(
+    (await readdir(baselineDirectory)).filter((entry) => entry.endsWith(".sql")).toSorted()[0],
+  );
+const [, baselineVersion, baselineName] = /^(\d{14})_([a-z0-9_]+)\.sql$/.exec(baselineFile)!;
+const baselineSql = await Bun.file(join(baselineDirectory, baselineFile)).text();
+const adminSql = renderTemplate(
+  await Bun.file(join(root, "supabase", "admin", "provision-app.sql")).text(),
+  {
+    BASELINE_VERSION: baselineVersion!,
+    BASELINE_NAME: baselineName!,
+    INITIAL_ADMIN_EMAIL_SQL: sqlLiteral(options.initialAdminEmail),
+  },
+);
+const sql = `${baselineSql}\n${adminSql}`;
 
 const plan = {
   mode: options.apply ? "apply" : "dry-run",
   repository: options.repository,
   identity,
+  baseline: baselineFile,
   mutations: [
-    "verify repository and normalized-name uniqueness",
-    "install app schema and schema-scoped roles in Supabase",
+    "verify the repository exists",
+    "adopt the repository name in package.json and supabase/config.toml",
+    "apply the canonical baseline to the application's own Supabase project and record it in migration history",
+    "create app_dev and app_runtime roles scoped to the default public schema",
     "create protected production environment with Deployer reviewers and no self-review",
     "set platform-owned environment variables for hostname, pool, and SSH identity; consume organization RUNTIME_ARCH",
     "install thin managed workflow callers",
@@ -221,19 +179,7 @@ for (const name of requiredEnvironment) {
 }
 
 await run({ executable: "gh", args: ["api", `repos/${options.repository}`, "--silent"] });
-const repositoryNames = (
-  await capture("gh", [
-    "api",
-    "--paginate",
-    `orgs/${organization}/repos?per_page=100`,
-    "--jq",
-    ".[].name",
-  ])
-)
-  .split("\n")
-  .filter(Boolean);
-assertNoIdentityCollisions(repositoryNames);
-await rewriteTemplateIdentity(options.repository);
+await adoptRepositoryName(options.repository, repository);
 await run({
   executable: "psql",
   args: [process.env.SUPABASE_DB_URL!, "--set", "ON_ERROR_STOP=1", "--no-psqlrc"],

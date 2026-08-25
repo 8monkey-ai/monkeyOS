@@ -1,10 +1,10 @@
 project_id = "monkeyos-app-template"
 
+# The application owns the default `public` schema, so `schemas` and `extra_search_path` are the
+# Supabase CLI defaults and are intentionally absent. Nothing here needs the application's name.
 [api]
 enabled = true
 port = 54321
-schemas = ["monkeyos_app_template", "graphql_public"]
-extra_search_path = ["monkeyos_app_template", "extensions"]
 max_rows = 1000
 
 [db]

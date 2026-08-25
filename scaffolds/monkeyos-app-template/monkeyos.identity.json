@@ -1,9 +1,0 @@
-{
-  "organization": "monkeyos-org",
-  "application": "monkeyos-app-template",
-  "schema": "monkeyos_app_template",
-  "developerRole": "monkeyos_app_template_dev",
-  "runtimeRole": "monkeyos_app_template_runtime",
-  "hostname": "monkeyos-app-template.apps.example.invalid",
-  "secretService": "monkeyOS:monkeyos-org/monkeyos-app-template"
-}

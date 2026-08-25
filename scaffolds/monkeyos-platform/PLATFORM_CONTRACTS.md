@@ -3,10 +3,11 @@
 This checklist is normative for the `v1` compatibility channel.
 
 - [x] Installable in any GitHub organization; no organization, domain, project, cloud account, or host is hard-coded.
-- [x] Repository identity is the only application registry and deterministically derives schema, roles, image, and hostname.
-- [x] Invalid and colliding normalized names fail before mutation.
+- [x] Identity is convention, not configuration: applications store no identity file, and no schema, role, hostname, or image name appears in application source. The repository name is written only to the credential-store namespace and the local Supabase container prefix, neither read by application code.
+- [x] Each application owns one Supabase project and therefore the default `public` schema. The baseline exists once, in `supabase/baseline`, and the template ships it verbatim with a recorded checksum; the provisioner renders only cluster roles, migration-history registration, and the initial admin.
+- [x] Row level security is the authorization boundary rather than schema isolation: the baseline revokes the permissive `public` defaults for existing and future objects, the application audit fails any table created without it, and applications select no schema anywhere.
 - [x] GitHub owns source, CI, approvals, deployment history, environment configuration, secrets, and GHCR artifacts.
-- [x] Supabase Auth owns identity; each application schema owns authorization, audit, and business state.
+- [x] Supabase Auth owns identity; each application project owns authorization, audit, and business state.
 - [x] There is no monkeyOS application-state database, registry, user directory, audit store, catalog, deployment-state store, or business schema.
 - [x] Contributors can develop; protected `production` environment reviewers authorize promotion; Platform Admins own the mechanism and targets.
 - [x] Application workflows are thin callers of protected central `@v1` reusable workflows.

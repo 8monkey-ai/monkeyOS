@@ -7,12 +7,13 @@ Read `README.md` for the application and `BUSINESS.md` for business routing. Bef
 ## Non-negotiable stack
 
 - Latest stable Bun is the only JavaScript runtime, package manager, application server, and test runner; do not pin a Bun minor line or add Node, npm, pnpm, yarn, or another runtime/package manager.
-- Strict TypeScript, React 19 with React Compiler, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, Oxfmt with Tailwind sorting, focused Oxlint `correctness`/`suspicious` plus React/accessibility rules and compiler diagnostics, Bun test, and Playwright.
+- Strict TypeScript, React 19 with the Oxc Rust React Compiler through the official Vite React plugin, React Router Framework Mode/Vite, Tailwind, shadcn/ui on Base UI, RHF/Zod, TanStack Query/Table, Recharts 3, Supabase SQL migrations without an ORM, Oxfmt with Tailwind sorting, focused Oxlint `correctness`/`suspicious` plus React/accessibility rules and compiler diagnostics, Bun test, and Playwright.
 - Keep `tsconfig.json` on the TypeScript 7/Bun ESM baseline: `ESNext`, `module: Preserve`, bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. Preserve React Router's generated-type `rootDirs`; do not add legacy compatibility flags without a demonstrated requirement.
 - Keep dependencies on compatible semver ranges and commit `bun.lock`. Let Dependabot refresh compatible dependency and action versions; do not hard-code patch versions in scripts or workflows.
 - Prefer SOLID, cohesive modules and direct code. Add abstractions only when they remove demonstrated duplication or enforce a real boundary.
 - Fix lint findings at their cause. Use a narrow explained suppression only when an external or generated boundary cannot be expressed safely; unused suppressions are errors. Do not enable broad style/pedantic/restriction/nursery or `react-perf` policies in place of evidence.
 - Keep the React Router project conventional: standard package scripts, root, route modules, type generation, and Vite configuration. Do not add a parallel browser entry, development orchestrator, or custom bundling scheme.
+- Keep React Compiler on the `vite:react-compiler` transform selected from `@vitejs/plugin-react`, with `oxc-transform-react` and `compiler: true`. React Router owns JSX and Fast Refresh; do not add the full React plugin pipeline beside it or restore a Babel compiler pipeline.
 
 ## UI and state
 

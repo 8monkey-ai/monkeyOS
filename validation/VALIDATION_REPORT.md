@@ -5,8 +5,8 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 
 ## Maintained scaffold sources
 
-- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.6.0
-- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.6.0
+- `scaffolds/monkeyos-app-template` — generic application scaffold, version 2.7.0
+- `scaffolds/monkeyos-platform` — generic organization-level platform repository, version 2.7.0
 
 ## Results
 
@@ -16,6 +16,7 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 | Runtime architecture contract | PASS — ARM64 default and AMD64 selection tested; invalid aliases rejected |
 | App Oxfmt/Tailwind formatting, React Router type generation, focused suspicious/React/accessibility linting, Oxlint type-aware compiler diagnostics, unit tests, production build and deterministic audit | PASS — 3 tests; 0 audit findings |
 | React Router Framework Mode on Bun | PASS — ordinary CLI package scripts, project-level Bun runtime configuration, standard route config and root document, generated client/server builds, and a small production adapter |
+| Oxc Rust React Compiler | PASS — official Vite React compiler transform with `compiler: true`; React Router retains JSX/Fast Refresh; compiled client output contains React memo-cache runtime code; direct Babel compiler dependencies removed |
 | Official shadcn/ui integration | PASS — official `shadcn@latest` CLI; Base UI `base-nova` preset; CLI-generated sidebar and standard registry primitives |
 | Local Supabase migration, deterministic seed, schema lint and pgTAP RLS/audit tests | PASS — no schema errors; 12 assertions |
 | Playwright responsive coverage | PASS — 9 tests across mobile, tablet and desktop, including login labels, responsive navigation and the Framework Mode health resource route |
@@ -35,6 +36,7 @@ Specification: latest `8monkey-ai/monkeyOS` `main` README, updated together with
 - Routine Supabase data access lives behind typed TanStack Query hooks with stable keys, validated mutations, error propagation, and precise cache updates. Pages and visual components consume hooks while RLS remains authoritative; deterministic audits enforce this boundary.
 - Both scaffolds use `oxlint-tsgolint` with `typeAware` and `typeCheck` enabled. Oxlint reported an intentional TS2322 probe, so the redundant `tsc --noEmit` pass was removed. React Router type generation remains an explicit prerequisite, and the TypeScript projects now cover the Bun production server and platform runtime tests.
 - Both scaffolds explicitly enable Oxlint's high-signal `correctness` and `suspicious` categories and reject unused disable directives. The app additionally enables native React and accessibility rules plus the targeted stable-Context-value check; obsolete JSX-scope linting is disabled for the modern transform, and broad `react-perf` heuristics remain off under React Compiler.
+- React Compiler now uses `oxc-transform-react` through the `vite:react-compiler` transform supplied by `@vitejs/plugin-react`. Loading the full React plugin beside React Router duplicated the development refresh runtime, so the scaffold selects only its compiler transform; a fail-fast config guard and both repository audits preserve that boundary.
 - Both scaffolds commit an Oxfmt configuration with the standard 100-column policy. The app also sorts Tailwind v4 classes in attributes and `cn`/`cva` calls. Deterministic app audits enforce both tool configurations.
 - Lint cleanup replaced unchecked JSON and external-response assertions with Zod parsing, associated every login/access label with its control, and moved responsive media-query state to `useSyncExternalStore` without changing Supabase, RLS, membership, or audit behavior.
 - Both `tsconfig.json` files use the TypeScript 7/Bun ESM baseline with `ESNext`, preserved modules, bundler resolution, forced module detection, verbatim module syntax, isolated transforms, checked side-effect imports, and explicit strictness. Unused legacy compatibility options were removed, and deterministic app audits enforce the baseline.

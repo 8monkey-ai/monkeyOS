@@ -1235,7 +1235,7 @@ Language                 strict TypeScript
                          TypeScript 7/Bun modern ESM configuration
 
 Frontend                 React 19
-                         React Compiler
+                         React Compiler through the Oxc Rust implementation
                          React Router Framework Mode
                          Vite
 
@@ -1278,7 +1278,10 @@ TypeScript configuration follows the modern TypeScript 7 and Bun ESM baseline: `
 
 Each real module owns typed TanStack Query query/mutation hooks and stable query keys. Those hooks own routine Supabase access, Zod validation of untrusted mutation inputs, error propagation, and precise cache invalidation or updates after successful mutations. Pages and visual components consume the hooks instead of calling Supabase `.from()` or `.rpc()` directly. Client filtering and hidden controls are never authorization; PostgreSQL RLS remains authoritative.
 
-Avoid unnecessary manual memoization under React Compiler.
+Use the Oxc Rust implementation of React Compiler from the official Vite React plugin. React Router
+already owns JSX and Fast Refresh, so select only the plugin's `vite:react-compiler` transform with
+`compiler: true`; do not install the full React plugin pipeline beside React Router or restore the
+Babel compiler pipeline. Avoid unnecessary manual memoization under React Compiler.
 
 Both scaffolds commit explicit Oxfmt and Oxlint configuration. Oxlint enforces the high-signal
 `correctness` and `suspicious` categories, rejects stale disable directives, and includes React and

@@ -1,6 +1,6 @@
 # monkeyOS application starter
 
-Version **2.6.0**. This clean application foundation starts with login, protected routes, role-managed app-local access, and an audit trail, but deliberately invents no placeholder business domain, table, record, or workflow. Repository provisioning replaces the starter identity with the target repository-derived schema, roles, image, hostname, and Bun secret namespace.
+Version **2.7.0**. This clean application foundation starts with login, protected routes, role-managed app-local access, and an audit trail, but deliberately invents no placeholder business domain, table, record, or workflow. Repository provisioning replaces the starter identity with the target repository-derived schema, roles, image, hostname, and Bun secret namespace.
 
 ## Start
 
@@ -56,7 +56,7 @@ shadcn/ui is the primary component and layout system. `components.json` is initi
 
 ## Framework conventions
 
-This is a standard React Router Framework Mode application. Its scripts use the ordinary React Router commands, with the usual root, route modules, type generation, and Vite lifecycle. `bunfig.toml` makes Bun the runtime for package CLIs. The `dev` script supplies Bun's `development` export condition to work around React Router's current non-Node restart bug; it adds no wrapper or custom development server. Vite adds only the required Tailwind and React Compiler plugins. Production uses a small Bun adapter for the framework-generated build.
+This is a standard React Router Framework Mode application. Its scripts use the ordinary React Router commands, with the usual root, route modules, type generation, and Vite lifecycle. `bunfig.toml` makes Bun the runtime for package CLIs. The `dev` script supplies Bun's `development` export condition to work around React Router's current non-Node restart bug; it adds no wrapper or custom development server. Vite adds Tailwind and React Router, then selects only the official React plugin's Oxc Rust compiler transform because React Router already owns JSX and Fast Refresh. Production uses a small Bun adapter for the framework-generated build.
 
 Use the latest stable Bun as the JavaScript runtime, package manager, application server, and test runner. Compatible package ranges are declared in `package.json`, exact tested resolutions remain in `bun.lock`, and Dependabot keeps packages, the moving Bun container base, and GitHub Actions current.
 

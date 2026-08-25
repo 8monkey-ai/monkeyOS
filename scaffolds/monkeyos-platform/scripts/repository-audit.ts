@@ -261,6 +261,33 @@ export async function auditRepository(root: string): Promise<Finding[]> {
         message: "Vite is not using React Router Framework Mode",
       });
     }
+    if (
+      !viteConfig.includes("@vitejs/plugin-react") ||
+      !/compiler\s*:\s*true/.test(viteConfig) ||
+      !viteConfig.includes('plugin.name === "vite:react-compiler"')
+    ) {
+      findings.push({
+        level: "BLOCKING",
+        message:
+          "Vite must select only the Oxc Rust compiler transform from the official React plugin",
+      });
+    }
+    for (const dependency of ["@vitejs/plugin-react", "oxc-transform-react"]) {
+      if (!packageJson.devDependencies?.[dependency]) {
+        findings.push({
+          level: "BLOCKING",
+          message: `Missing Oxc React Compiler dependency: ${dependency}`,
+        });
+      }
+    }
+    for (const legacy of ["babel-plugin-react-compiler", "vite-plugin-babel"]) {
+      if (packageJson.devDependencies?.[legacy] || viteConfig.includes(legacy)) {
+        findings.push({
+          level: "BLOCKING",
+          message: `Legacy Babel React Compiler integration remains: ${legacy}`,
+        });
+      }
+    }
     if (/\b(?:server|build)\s*:/.test(viteConfig)) {
       findings.push({ level: "BLOCKING", message: "Vite contains custom server/build plumbing" });
     }

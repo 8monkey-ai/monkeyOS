@@ -1,6 +1,6 @@
 # monkeyOS organization platform
 
-Version **2.6.0**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
+Version **2.7.0**. This repository is the organization-owned control plane for monkeyOS. It centralizes reusable GitHub workflows, plain-file engineering skills, app provisioning, provider-native infrastructure, Pi configuration, and trusted Kamal deployment. It is portable: replace organization settings and inputs; do not fork in organization, domain, Supabase, account, or host assumptions.
 
 monkeyOS deliberately owns no database or service for applications, users, memberships, audit, domains, catalogs, deployments, workflows, or infrastructure state. GitHub, Supabase Auth, each app schema, Cloudflare, and the selected cloud control plane remain authoritative.
 
@@ -93,7 +93,7 @@ Both scaffolds use the modern TypeScript 7/Bun ESM baseline: `ESNext`, preserved
 - Supabase local development and RLS: <https://supabase.com/docs/guides/local-development/cli-workflows>, <https://supabase.com/docs/guides/database/postgres/row-level-security>
 - React Router Framework Mode, deployment, and current Bun/non-Node runtime changes: <https://reactrouter.com/start/modes>, <https://reactrouter.com/start/framework/deploying>, <https://reactrouter.com/start/changelog>
 - TypeScript 7 configuration and Bun TypeScript baseline: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-rc/>, <https://bun.sh/docs/typescript>
-- React Compiler with React Router/Vite: <https://react.dev/learn/react-compiler/installation>
+- Oxc Rust React Compiler with Vite: <https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#rust-react-compiler>
 - Bun secrets: <https://bun.com/docs/runtime/secrets>
 - Pi coding agent: <https://github.com/earendil-works/pi/tree/main/packages/coding-agent>
 - Kamal: <https://kamal-deploy.org/docs/configuration/overview/>

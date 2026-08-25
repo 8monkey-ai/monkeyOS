@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.0
+
+- Replaced the Babel React Compiler pipeline with the Oxc Rust compiler transform from the official Vite React plugin.
+- Kept React Router's JSX and Fast Refresh ownership intact by selecting only the compiler transform, avoiding duplicate refresh-runtime injection.
+- Added deterministic repository-audit enforcement for the compiler integration and removal of direct Babel compiler dependencies.
+
 ## 2.6.0
 
 - Enabled Oxlint's high-signal suspicious checks plus React and accessibility analysis while retaining type-aware compiler diagnostics.
